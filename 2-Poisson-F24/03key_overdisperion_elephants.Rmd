@@ -1,0 +1,292 @@
+---
+title: "Overdispersion"
+author: "Laura Boehm Vock"
+date: "9/13/2021"
+output: html_document
+---
+
+Learning goals
+
+1. Identify when an overdispersed model is necessary using graphical evidence, residual deviance and goodness of fit test. 
+
+2. Fit a quasipoisson model in R.
+
+3. Identify the overdispersion paramter from quasipoisson model output. 
+
+
+# Intro: More Elephants
+```{r, setup, message=FALSE}
+library(tidyverse)
+library(gridExtra) 
+
+elephant <- read_csv("~/Stats_316_F24/Class/Data/elephant.csv") %>% 
+  rename(age=AGE, matings=MATINGS)
+
+elephant
+```
+
+We have previously examined the `elephant` dataset. An article by Poole (1989) investigated whether mating success in male elephants increases with age and whether there is a peak age for mating success. To address this question, the research team followed 41 elephants for one year and recorded their ages and their number of matings.
+
+An examination of the mean vs variance demonstrated that the two were not exactly equal:
+
+```{r}
+elephant %>%
+  mutate(agegroup = cut_number(age, 5)) %>%
+  group_by(agegroup) %>%
+  summarize(mean = mean(matings), variance = var(matings), n = n(), ratio = variance/mean) 
+
+elephant %>%
+  mutate(agegroup = cut_number(age, 10)) %>%
+  group_by(agegroup) %>%
+  summarize(mean = mean(matings), variance = var(matings)) %>%
+  ggplot(aes(x = mean, y = variance)) + 
+  geom_point() + 
+  geom_abline(slope = 1, intercept = 0) + 
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+
+1. As you might try different binwidths to examine a distribution via a histogram, we should probably remake the above table trying different bins. Experiment with changes to cut_number or use cut_interval or cut_width instead. What patterns do you see?
+
+```{r}
+elephant %>%
+  mutate(agegroup = cut_interval(age, 5)) %>%
+  group_by(agegroup) %>%
+  summarize(mean = mean(matings), variance = var(matings), n = n(), ratio = variance/mean) 
+```
+
+```{r}
+elephant %>%
+  mutate(agegroup = cut_width(age, width = 4, center = 31)) %>%
+  group_by(agegroup) %>%
+  summarize(mean = mean(matings), variance = var(matings), n = n(), ratio = variance/mean) 
+```
+
+
+2. When the variance is greater than the mean, one option is to fit a Poisson regression model with an adjustment for overdispersion. In addition to examining the empirical mean and variances (as above), we can check the ratio of the residual deviance and degrees of freedom. If the Poisson distribution is truly a good fit, these numbers will be equal. Find these values in the R output below. What do they indicate?
+
+
+```{r}
+pois.elephant <- glm(matings ~ age, data = elephant, family = poisson)
+summary(pois.elephant)
+```
+
+**The residual difference (51.09) is slightly larger than the df (39).**
+
+3. Copy and modify the code above to create a model `quasi.elephant` using `family = quasipoisson`. This fits a model with an overdispersion adjustment. 
+
+```{r}
+quasi.elephant <- glm(matings ~ age, data = elephant, family = quasipoisson)
+summary(quasi.elephant)
+```
+
+Identify how each of the following have (or have not) changed in comparing the Poisson and Quasi-Poisson models.
+
+a. Regression coefficient estimates.
+
+Did NOT change
+
+b. Regression coefficient standard errors.
+
+Increased
+
+c. Regression coefficient p-values.
+
+Increased
+
+d. Dispersion parameter
+
+In the poisson model, dispersion is assumed to be 1. In the quasipoisson, we estimate the overdispersion parameter to be 1.157. 
+
+e. Residual deviance
+
+no change
+
+f. AIC
+
+The AIC is NA for the quasipoisson model.
+
+
+Note: The Quasi-Poisson model is also known as an "Overdispersed Poisson" or "Poisson model with Overdispersion."
+
+
+
+4. Plot the deviance residuals vs. fitted values for the Poisson regression model. Do you notice any outliers, or evidence of nonlinearity?
+
+```{r}
+elephant.pred <- data.frame(fitted = predict(pois.elephant),
+                            resid = resid(pois.elephant))
+
+ggplot(elephant.pred, aes(x = fitted, y = resid)) + 
+  geom_point() +
+  geom_smooth(se = FALSE, color = "red", span = 2) + 
+  geom_abline(intercept = 0, slope = 0)
+```
+
+*Not really, this seems pretty good*
+
+5. Conduct a goodness of fit test for the Poisson regression model. 
+
+```{r}
+1 - pchisq(pois.elephant$deviance, pois.elephant$df.residual)
+```
+
+$H0:$ Model fits well (no overdispersion), $HA$: Lack of fit (Possibly due to overdispersion, or for other reasons!)
+
+*p-value is 0.09, so we fail to reject H0. There is not evidnce of overdispersion.*
+
+
+6. Would you choose a quasi-Poisson or Poisson model for these elephant data?  Are there any downsides to choosing the quasi-Poisson model?
+
+**As the overdispersion is only estimated to be 1.15, this is not a lot of overdispersion! The overdispersed model is slightly more conservative, and so may be preferred even if the amount of overdispersion is small. (In this case, we see the effect of age is obviously statistically significant, whether or not overdispersion is accounted for).**
+
+**The downside of choosing the quasi-Poisson model is that we do not get an AIC to use for non-nested comparisons.**
+
+
+
+# More practice: Soccer Goals
+
+These data come from the raw data behind the story "2019 Women’s World Cup Predictions" https://projects.fivethirtyeight.com/2019-womens-world-cup-predictions/
+
+More details about the data can be found in the fivethirtyeight package, for dataset `wwc_2019_matches`. For your reference, I've included the code I used to restructure the data here; we will use the dataset `wwc_games` from the Class > Data folder.
+
+Our goal is to investigate whether the Soccer Power Index (spi) is useful for predicting the number of goals a team scores in a game.
+
+```{r}
+# library(fivethirtyeight)
+# data("wwc_2019_matches")
+# 
+# wwc_games <- wwc_2019_matches %>%
+#   mutate(game = row_number()) %>%
+#   select(date, game, team1, team2, score1, score2, spi1, spi2) %>%
+#   pivot_longer(-c(date, game),
+#                names_to= c(".value", "team_num"),
+#                names_pattern = "([a-z]*)([1-2])")
+#
+# wwc_games
+```
+
+*Variables:*
+
+date
+team
+score - number of goals scored
+spi - soccer power index (higher indicates a better team)
+game and team_num provide an index. Each game is represented by 2 rows.
+
+Read in the data, then produce our usual summary information:
+
+```{r}
+ wwc_games <- read_csv("~/Stats_316_F24/Class/Data/wwc_games.csv")
+
+dim(wwc_games)
+str(wwc_games)
+head(wwc_games)
+tail(wwc_games)
+summary(wwc_games)
+```
+
+
+1. Based on the graphs below, what seems like a reasonable initial model for these data? Do you notice anything that may be problematic?
+
+```{r}
+ggplot(wwc_games, aes(x = score)) + 
+  geom_histogram()
+
+
+ggplot(wwc_games, aes(x = spi, y = score)) + 
+  geom_point()
+  
+ggplot(wwc_games, aes(x = spi, y = log(score))) + 
+  geom_jitter() + 
+  geom_smooth(method = "lm")
+```
+
+*A Poisson regression model seems appropriate (skewed, count response). The plot shows a potential log-linear relationship... though maybe need a quadratic term? There is one big outlier, a game with 13 goals for one team!.*
+
+2. Create a graph of mean vs variance with a blue and black line, similar to the one for elephants in the example code above. What does this suggest to use about the appropriateness of a Poisson regression model?
+
+```{r}
+wwc_games %>% 
+  mutate(spigroup = cut_interval(spi, 6)) %>%
+  group_by(spigroup) %>%
+  summarize(meanscore = mean(score), varscore = var(score), n = n()) %>%
+  ggplot(aes(x = meanscore, y = varscore)) +
+  geom_point() + 
+  geom_smooth(method = 'lm', se = FALSE) + 
+  geom_abline(slope = 1, intercept = 0)
+```
+
+
+*Definite overdisperion!*
+
+
+3. Fit a regression model with spi as the explanatory variable and score as the response. Interpret a 95% confidence interval on the slope for spi. 
+
+```{r}
+wwc.pois <- glm(score ~ spi, data = wwc_games, family = poisson)
+summary(wwc.pois)
+exp(coef(wwc.pois))
+exp(confint(wwc.pois))
+```
+
+*We are 95% confident that each additional SPI point is associated with an additional 1.4 to 4.0% higher number of goals in a game. *
+
+
+4. Examine the summary output for this model. Does there appear to be evidence of overdispersion (or other lack of fit)?
+
+*Some yes, the residual deviance (152.96) is somewhat greater than the residual degrees of freedom.*
+
+
+
+5. Conduct a formal test for goodness of fit.
+
+
+```{r}
+1 - pchisq(wwc.pois$dev, wwc.pois$df.residual)
+```
+
+*THere is significant evidence of lack of fit (p-value = 0.0008).*
+
+
+
+
+Lack of fit can occur for many reasons! 
+
+- outliers
+- important variables are missing, or relationships are actually nonlinear
+- observations are not truly independent
+
+If you can adapt your model to account for any of these, DO THAT FIRST. Then, if all else fails, account for overdispersion with a quasi-Poisson or negative binomial model.
+
+
+
+
+6. Plot the fitted values vs residuals. Do you see any outliers or evidence of non-linearity?
+
+
+
+
+7. What are some suggestions for further modeling?? Try a few possibilities.
+
+
+8. Give at least one reason why it may not be appropriate to assume the observations are independent in this dataset.
+
+
+
+# Soccer goals: Negative binomial model
+
+Another approach to accounting for overdisperson is the Negative Binomial model. The interpretation of regression coefficients is the same as in the Poisson and Quasi-Poisson models. The distributional assumption is slightly different (negative binomial rather than Poisson), and the relationship between mean and variance is thus different (more of a quadratic relationship).
+
+
+```{r}
+?MASS::glm.nb
+
+wwc.nb <- MASS::glm.nb(score ~ spi, data = wwc_games)
+
+summary(wwc.nb)
+```
+
+
+
+

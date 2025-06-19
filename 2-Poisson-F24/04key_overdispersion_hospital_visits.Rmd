@@ -1,0 +1,273 @@
+---
+title: "Poisson Regression with OverDispersion"
+author: "Prof Boehm Vock"
+output:
+  pdf_document: default
+  html_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+Learning Goals: 
+- Explore differences between quasipoisson and negative binomial regression
+- Use graph of mean vs variance to choose between Poisson, QuasiPoisson, and Negative Binomial model.
+- Identify pros and cons of quasipoisson and negative binomial modeling approaches
+
+```{r}
+library(tidyverse)
+data(NMES1988, package = "AER")
+NMES1988 <- as_tibble(NMES1988)
+
+NMES1988
+help(NMES1988, package = "AER")
+```
+
+
+**I"ll filll in the answers in the first section later, but I did fill in starting with #9**
+Consider the variable `hospital` as the response variable.
+
+1. Conduct some EDA to determine which of the following variables may be potentially related to the number of hospitalizations: health, chronic, adl, income.
+
+
+
+2. Which of our potential explanatory variables are related to *each other*? (We still need to think about issues of multicollinearity!)
+
+
+
+3. Fit four separate Poisson regression models, each with a single predictor (health, chronic, adl, income) with `hospital` visits as the response. Which variable is by itself the best predictor? How do you know? 
+
+
+4. Consider again the same list of variables: health, chronic, adl, and income, but this time use the response variable of `visits`. Do some EDA to determine which variables might be related to the response variable of `visits` (number of physician office visits). 
+
+
+
+
+## In class ##
+
+In this section, we use `hospital` as the response variable. 
+
+5. Fit two different models with `hospital` as response that you think might be "good." Which one is better? How do you know? 
+
+
+6. Interpret the intercept and at least one slope from your model.
+
+
+7. Check the plot of deviance residuals vs fitted values for evidence of nonlinearity. 
+
+
+8. Is there evidence of overdispersion? 
+
+
+*************
+
+In the next section, we will use `visits` as the response variable, and start with the following model: 
+
+```{r}
+visits1 <- glm(visits ~ health + chronic + adl + income, 
+               family = poisson,
+               data = NMES1988)
+summary(visits1)
+```
+
+
+
+9. Is there evidence of overdispersion? How do you know?
+
+*Yes, residual deviance (24365) is much larger than df (4400)*
+
+10. Create a plot of mean vs variance. For this example, if you have a mutliple Poisson regression model you can do your grouping based on the predicted values. (see code below) 
+
+```{r}
+NMES1988 %>%
+  mutate(pred = predict(visits1),  
+         grouping = cut_number(pred, 15)) %>% 
+  group_by(grouping) %>% 
+  summarize(Mean = mean(visits),
+            Var = var(visits )) %>% 
+  ggplot(aes(Mean, Var)) + 
+  geom_point() +
+  geom_smooth(method = lm, se = FALSE) + 
+  geom_abline(slope = 1, intercept = 0) + 
+  coord_cartesian(ylim = c(0 , 90))
+```
+
+* Does the mean vs variance plot suggest overdispersion? 
+
+YES
+
+* Is the relationship of mean and variance linear, or curved?
+
+LINEAR
+
+
+## Negative binomial vs. Quasi Poisson
+
+In Quasi Poisson, we assume 
+
+$$Var(Y) = \phi\lambda$$
+
+This is a LINEAR relationship between mean and variance. We can handle under or overdispersion by estimating $\phi$ as less than or greater than 1. 
+
+The parameter $\phi$ only affects the estimation of variance/standard error, so the predicted $\beta$ values will be the same as the ordinary Poisson model.
+
+
+In Negative binomial, we let $E(Y) = \mu$. The overdispersion paramter $r$ is used in the relationship
+
+$$Var(Y) = \mu + \mu^2/r$$
+
+The paramter $r$ must be greater than 0. Thus this model only handles OVER dispersion, and a quadratic (curved) relationship between mean and variance is assumed.
+
+The entire likelihood is different in Negative binomial compared to Poisson, and unusually large and small values (big residuals) have different weight. This means that the estimated $\beta$ values will be different than the ordinary Poisson model, although our interpretation of them is the same. 
+
+
+
+11. When the mean vs variance relationship is LINEAR, quasipoisson can work. When the mean vs variance is QUADRATIC (curved) we use the negative binomial model. Below, we fit both the quasipoisson and the negative binomial model. Compare the coefficient estimates and standard errors. 
+
+```{r}
+visits1quas <- glm(formula = visits ~ health + chronic + adl + income, family = quasipoisson, 
+    data = NMES1988)
+
+visits1nb <- MASS::glm.nb(visits ~ health + chronic + adl + income,
+               data = NMES1988)
+
+summary(visits1quas)$coef  %>% round(4)
+summary(visits1nb)$coef %>% round(4)
+```
+
+
+NOTE: we should test these borderline p-values with drop in deviance instead!
+```{r}
+# DO NOT EDIT THIS CHUNK
+visits1nb2 <- MASS::glm.nb(visits ~ health + chronic + adl,
+               data = NMES1988)
+anova(visits1nb2, visits1nb, test = "Chisq")
+
+summary(visits1nb2)
+
+visits1nb3 <- MASS::glm.nb(visits ~ health + chronic,
+               data = NMES1988)
+
+summary(visits1nb3)
+
+visits1nb31 <- MASS::glm.nb(visits ~ health + chronic,
+               data = NMES1988)
+
+summary(visits1nb31)
+
+
+anova(visits1nb3, visits1nb2, test = "Chisq")
+
+# EDA Suggests no relationship as well.
+NMES1988 %>% 
+  group_by(adl) %>%
+  summarize(mean(visits), sd(visits), median(visits))
+
+cor(NMES1988$visits, NMES1988$income)
+```
+
+
+*What you should see above: The linear relationship of mean and variance suggests a quasi poisson model would be appropriate. If you really want to have a likelihood based model (for example, if you want to do lots of LRT/DDTs to compare nested models), you might still go with the negative binomail. Though the assumption is a quadratic relationship, it can do ok for a linear relationship too. In this case, either model is justifiable, and we come to similar overall conclusions.*
+
+
+12. A different group of researchers proposes the following model instead, and create the mean vs variance plot. Which type of overdispersed model seems more appropriate: quasipoisson or negative binomial? 
+
+```{r}
+visits2 <- glm(formula = visits ~ insurance + health + chronic + 
+    afam + school + age, 
+    family = poisson, 
+    data = NMES1988)
+
+# CUT/GROUP by the PREDICTED VALUES
+NMES1988 %>% 
+  mutate(pred = predict(visits2), 
+         group = cut_number(pred, 25)) %>%
+  group_by(group) %>%
+  summarize(mean_visits = mean(visits), 
+            var_visits = var(visits)) %>%
+  ggplot(aes(mean_visits, var_visits)) + 
+  geom_point() + 
+  geom_smooth(span = 2, se = FALSE)
+```
+
+*The relationship of mean and variance is clearly quadratic!*
+
+13. Here again we fit both. What differences do you notice?
+
+```{r}
+visits2quas <- glm(formula = visits ~ insurance + health + chronic + 
+    afam + school + age, 
+    family = quasipoisson, 
+    data = NMES1988)
+
+visits2nb <- MASS::glm.nb(formula = visits ~ insurance + health + chronic + 
+    afam + school + age, 
+    data = NMES1988)
+
+
+summary(visits2quas)$coef %>% round(4)
+summary(visits2nb)$coef %>% round(4)
+
+summary(visits2quas)
+```
+
+*The difference in results between the two models is bigger. We should trust the Negative Binomial results here!*
+
+
+14. We can also examine the fitted vs deviance residuals for the poisson and the negative binomial models. Why are the deviance residuals so much smaller for the negative binomial model? How might we adjust our visualization for a better comparison?
+
+```{r}
+fitdeviance <- data.frame(fitted = predict(visits2),
+                            resid = resid(visits2), 
+                     model = "poisson") %>%
+  bind_rows(data.frame(fitted = predict(visits2nb),
+                            resid = resid(visits2nb), 
+                     model = "negative_binomial"))
+
+ggplot(fitdeviance, aes(x = fitted, y = resid)) + 
+  geom_point() +
+  geom_smooth(se = FALSE, color = "red", span = 2) +
+  facet_wrap(~model)
+```
+
+The poisson are not really scaled properly by variance. Divide those deviance residuals by sqrt(phi). 
+
+```{r}
+fitdeviance <- data.frame(fitted = predict(visits2),
+                            resid = resid(visits2)/sqrt(6.95), 
+                     model = "poisson") %>%
+  bind_rows(data.frame(fitted = predict(visits2nb),
+                            resid = resid(visits2nb), 
+                     model = "negative_binomial"))
+
+ggplot(fitdeviance, aes(x = fitted, y = resid)) + 
+  geom_point() +
+  geom_smooth(se = FALSE, color = "red", span = 2) +
+  facet_wrap(~model)
+```
+
+
+15. Which model is preferred: visits1 or visits2? 
+
+```{r}
+visits1nb
+visits2nb
+```
+
+*We can use AIC if we use the negative binomial models. Visits2 has the lower AIC so is preferred. (Note however we still could probably make an even better model!)*
+
+Important notes: 
+
+- To compare two NESTED quasipoisson models, we can use anova(m1, m1, test = "F"). This an approximation to the likelihood ratio test. (Can't use LRT becuase it is not a true likelihood!)
+
+- The negative binomial model uses a true likelihood. To compare two NESTED negative binomial models, we can use anova(m1, m1, test = "Chisq") just as with Poisson or other models! We can also compare AICs.
+
+- The QuasiPoisson model also works in cases of underdispersion. We will see the Residual deviance as LESS than the df in the summary output and estimate $\phi < 1$.
+
+- The Negative Binomial model can only handle OVERdispersion.
+
+- It isn't advisable to compare the AICs of the Poisson to the Negative Binomial because the model structure is so different. We have learned to use the goodness of fit test to test for overdispersion. 
+Other tests exist to directly compare negative binomial to poisson models, but they are beyond the scope of this class.
+
+
+
+

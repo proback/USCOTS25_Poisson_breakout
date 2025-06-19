@@ -1,0 +1,85 @@
+---
+title: "Negative Binomial Distribution"
+author: "Laura Boehm Vock"
+date: "10/8/2021"
+output: html_document
+---
+
+Consider again the medical visits data from the homework.
+
+The Poisson distribution depends upon only one parameter, $\lambda$, and mean = variance is implicit.
+
+The Negative binomial distribution uses two parameters, $\mu$ and $r$, where mean = $\mu$, and variance = $\mu + \mu^2/r$. Then mean and variance can be very different! 
+
+For a specific mean value, there is only ONE Poisson distribution, but MANY possibilities for the Negative binomial!
+
+```{r, message = FALSE, echo = FALSE}
+library(AER)
+data("NMES1988")
+library(tidyverse)
+library(gridExtra)
+```
+
+```{r}
+range(NMES1988$visits)
+(meanvisits <- mean(NMES1988$visits))
+(varvisits <- var(NMES1988$visits))
+```
+
+```{r, echo = FALSE}
+expected <- data.frame(visits = 0:89, 
+                       poisson.expected = dpois(0:89, lambda=meanvisits)*nrow(NMES1988),
+                       nbinom.expected1 = dnbinom(0:89, mu = meanvisits, size = 200)*nrow(NMES1988), 
+                       nbinom.expected2 = dnbinom(0:89, mu = meanvisits, size = 10)*nrow(NMES1988), 
+                       nbinom.expected3 = dnbinom(0:89, mu = meanvisits, size = 2)*nrow(NMES1988), 
+                       nbinom.expected4 = dnbinom(0:89, mu = meanvisits, size = 0.83)*nrow(NMES1988)) 
+                       
+
+
+obs.hist <- ggplot(NMES1988, aes(visits)) + 
+  geom_histogram(binwidth=1) +
+  ggtitle("Observed Counts, \nmean = 5.8, var = 45.7") +
+  ylim(0, 750)
+
+pois.hist <- ggplot(expected, aes(x=visits, y=poisson.expected)) +
+  geom_col() +
+  ggtitle("Poisson Expected Counts, \nmean = 5.8, var = 5.8")+
+  ylim(0, 750)
+
+nb1.hist <- ggplot(expected, aes(x=visits, y= nbinom.expected1)) +
+  geom_col() +
+  ggtitle("NegBinomial, r = 200, \nmean = 5.8, var = 5.9")+
+  ylim(0, 750)
+
+nb2.hist <- ggplot(expected, aes(x=visits, y= nbinom.expected2)) +
+  geom_col() +
+  ggtitle("NegBinomial, r = 10, \nmean = 5.8, var = 9.1")+
+  ylim(0, 750)
+
+
+nb3.hist <- ggplot(expected, aes(x=visits, y= nbinom.expected3)) +
+  geom_col() +
+  ggtitle("NegBinomial, r = 2, \nmean = 5.8, var = 22.4")+
+  ylim(0, 750)
+
+nb4.hist <- ggplot(expected, aes(x=visits, y= nbinom.expected4)) +
+  geom_col() +
+  ggtitle("NegBinomial, r = 0.83, \nmean = 5.8, var = 45.9")+
+  ylim(0, 750)
+
+grid.arrange(obs.hist, pois.hist, nb1.hist, nb2.hist, nb3.hist, nb4.hist, ncol=2)  #grid.arrange is from the gridExtra package
+```
+
+
+The Negative binomial model with mean and variance similar to the observed medical visits mean and variance actually matches the data fairly well!
+
+
+
+
+Below I highlight just the negative binomial models; its the same graphs as above.
+
+```{r, echo = FALSE}
+grid.arrange(pois.hist, 
+             nb2.hist, nb3.hist, nb4.hist, ncol=1) 
+```
+

@@ -1,0 +1,244 @@
+---
+title: "R Tip of the Day Example"
+subtitle: "The gganimate package"
+author: "Paul Roback"
+date: "January 1, 2025"
+format:
+  revealjs: 
+    slide-number: true
+    chalkboard: 
+      buttons: true
+    preview-links: auto
+editor_options: 
+  chunk_output_type: console
+execute:
+  freeze: auto
+---
+
+```{r}
+library(tidyverse)
+library(gapminder)
+library(gganimate)
+library(ggridges)
+```
+
+##  {auto-animate="true"}
+
+::: {style="margin-top: 100px;"}
+An intro to gganimate
+:::
+
+##  {auto-animate="true"}
+
+::: {style="margin-top: 200px; font-size: 2.5em; color: red;"}
+An intro to gganimate
+:::
+
+## Code with no animation {auto-animate="true"}
+
+``` r
+gapminder |>
+  ggplot(aes(x = gdpPercap, y = lifeExp, size = pop, color = country)) +
+  geom_point(alpha = 0.7, show.legend = FALSE) +
+  scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  scale_x_log10() +
+  facet_wrap(~ continent) +
+  labs(
+    x = "GDP per capita",
+    y = "life expectancy"
+  )
+```
+
+## Code with animation {auto-animate="true"}
+
+``` r
+gapminder |>
+  ggplot(aes(x = gdpPercap, y = lifeExp, size = pop, color = country)) +
+  geom_point(alpha = 0.7, show.legend = FALSE) +
+  scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  scale_x_log10() +
+  facet_wrap(~ continent) +
+  transition_time(year) +
+  ease_aes('linear') +
+  labs(
+    title = "Year: {frame_time}",
+    x = "GDP per capita",
+    y = "life expectancy"
+  )
+```
+
+::: footer
+Learn more: [Code Animations](https://quarto.org/docs/presentations/revealjs/advanced.html#code-animations)
+:::
+
+## Line Highlighting
+
+-   Incrementally see what we just added
+
+``` {.r code-line-numbers="8-9|11"}
+gapminder |>
+  ggplot(aes(x = gdpPercap, y = lifeExp, size = pop, color = country)) +
+  geom_point(alpha = 0.7, show.legend = FALSE) +
+  scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  scale_x_log10() +
+  facet_wrap(~ continent) +
+  transition_time(year) +
+  ease_aes('linear') +
+  labs(
+    title = "Year: {frame_time}",
+    x = "GDP per capita",
+    y = "life expectancy"
+  )
+```
+
+::: footer
+Learn more: [Line Highlighting](https://quarto.org/docs/presentations/revealjs/#line-highlighting)
+:::
+
+## Executable Code
+
+-   Now let us run the code and show the output in our presentation
+
+```{r}
+library(tidyverse)
+library(gapminder)
+library(gganimate)
+library(ggridges)
+
+gapminder |>
+  ggplot(aes(x = gdpPercap, y = lifeExp, size = pop, color = country)) +
+  geom_point(alpha = 0.7, show.legend = FALSE) +
+  scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  scale_x_log10() +
+  facet_wrap(~ continent) +
+  transition_time(year) +
+  ease_aes('linear') +
+  labs(
+    title = "Year: {frame_time}",
+    x = "GDP per capita",
+    y = "life expectancy"
+  )
+```
+
+::: footer
+Learn more: [Executable Code](https://quarto.org/docs/presentations/revealjs/#executable-code)
+:::
+
+## Code with no animation: Example 2 {auto-animate="true"}
+
+``` r
+gapminder07 <- filter(gapminder, year == 2007)
+gapminder07 |>
+  ggplot(aes(x = lifeExp, y = continent, fill = continent)) +
+  geom_density_ridges(show.legend = FALSE, alpha = 0.5) +
+  labs(
+    title = "Life Expectancy by Continent",
+    subtitle = "Year: 2007",
+    x = "Life Expectancy",
+    y = "Continent"
+  )
+```
+
+## Code with animation: Example 2 {auto-animate="true"}
+
+``` r
+gapminder |>
+  ggplot(aes(x = lifeExp, y = continent, fill = continent)) +
+  geom_density_ridges(show.legend = FALSE, alpha = 0.5) +
+  labs(
+    title = "Life Expectancy by Continent",
+    subtitle = "Year: {frame_time}",
+    x = "Life Expectancy",
+    y = "Continent"
+  ) +
+  transition_time(year) +
+  ease_aes("linear")
+```
+
+::: footer
+Learn more: [Code Animations](https://quarto.org/docs/presentations/revealjs/advanced.html#code-animations)
+:::
+
+## Line Highlighting
+
+-   Incrementally see what we just added
+
+``` {.r code-line-numbers="6|10-11"}
+gapminder |>
+  ggplot(aes(x = lifeExp, y = continent, fill = continent)) +
+  geom_density_ridges(show.legend = FALSE, alpha = 0.5) +
+  labs(
+    title = "Life Expectancy by Continent",
+    subtitle = "Year: {frame_time}",
+    x = "Life Expectancy",
+    y = "Continent"
+  ) +
+  transition_time(year) +
+  ease_aes("linear")
+```
+
+::: footer
+Learn more: [Line Highlighting](https://quarto.org/docs/presentations/revealjs/#line-highlighting)
+:::
+
+## Executable Code
+
+-   Now let us run the code and show the output in our presentation
+
+```{r}
+gapminder |>
+  ggplot(aes(x = lifeExp, y = continent, fill = continent)) +
+  geom_density_ridges(show.legend = FALSE, alpha = 0.5) +
+  labs(
+    title = "Life Expectancy by Continent",
+    subtitle = "Year: {frame_time}",
+    x = "Life Expectancy",
+    y = "Continent"
+  ) +
+  transition_time(year) +
+  ease_aes("linear")
+```
+
+::: footer
+Learn more: [Executable Code](https://quarto.org/docs/presentations/revealjs/#executable-code)
+:::
+
+
+## Incremental Lists
+
+Lists can optionally be displayed incrementally:
+
+::: incremental
+-   Transitions: between years, categories, etc.
+    -   transition_time(), transition_states(), transition_reveal()
+:::
+
+::: {.fragment .fade-in}
+-   Views: axes can shift with changing data
+    -   view_follow()
+:::
+
+::: {.fragment .fade-left}
+-   Shadows: have a trace or memory of previous data
+    -   shadow_wake(), shadow_mark()
+:::
+
+::: footer
+Learn more: [Incremental Lists](https://quarto.org/docs/presentations/revealjs/#incremental-lists)
+:::
+
+## Preview Links
+
+Thanks to Jenna Graff of MSCS 264 in Spring 2024 for putting together the original powerpoint presentation on gganimate. Here's a link with even more information:
+
+::: {style="text-align: center; margin-top: 1em"}
+[The gganimate package](https://gganimate.com/){preview-link="true" style="text-align: center"}
+:::
+
+::: footer
+Learn more: [Preview Links](https://quarto.org/docs/presentations/revealjs/presenting.html#preview-links)
+:::

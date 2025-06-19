@@ -1,0 +1,353 @@
+---
+title: "ZIP model"
+author: "Laura Boehm Vock"
+date: "9/24/2021"
+output: html_document
+---
+
+Learning goals 
+- Identify when a ZIP may be needed and why
+- Fit a ZIP model with R package pscl
+- Interpret coefficients from the poisson and binary parts of a ZIP model
+- Write down a ZIP model with proper notation
+- Use the Vuong test to check if the ZIP model is better than ordinary poisson.
+
+# Before class
+
+# Weekend Drinking
+
+This replicates the Weekend Drinking data analysis in Ch 4 of the textbook.
+
+```{r, message = FALSE}
+library(tidyverse)
+library(pscl) ### Need this library for ZIP model
+
+drinks.data <- read_csv("~/Stats_316_F24/Class/Data/weekendDrinks.csv")
+head(drinks.data)
+
+drinks.data <- drinks.data %>%
+  mutate(offcampus = ifelse(dorm == "off campus", 1, 0),
+         firstyear = ifelse(dorm %in% c("kildahl", "kittlesby", "mohn"), 1, 0))
+```
+
+These graphs compare what counts for number of drinks are observed compared to what would be expected from a Poisson distribution with the same mean.
+
+```{r, message = FALSE}
+library(gridExtra) # for doing side by side ggplots
+
+(meandrinks <- mean(drinks.data$drinks))  # Here we assign with <-... putting ( ) around it prints it out too! 
+
+range(drinks.data$drinks)    # this tells us the range of values, 0:22 to use below.
+
+expected <- data.frame(drinks = 0:22,    
+                       count = dpois(0:22, lambda=meandrinks)*nrow(drinks.data))
+
+
+obs.hist <- ggplot(drinks.data, aes(drinks)) + 
+  geom_histogram(binwidth=1) +
+  ggtitle("Observed Counts") +
+  ylim(0, 37)  
+# Note: I first made this graph with the default ylim; 
+# then choose limits 0, 37 so that I can be sure both
+# histograms have the same height.
+
+exp.hist <- ggplot(expected, aes(x=drinks, y=count)) +
+  geom_col()+
+  ggtitle("Expected Counts")+
+  ylim(0,37)
+
+grid.arrange(obs.hist, exp.hist, ncol=1)  #grid.arrange is from the gridExtra package
+```
+
+
+1. Fit a regular Poisson model with `offcampus` and `sex` as explanatory variables. Does the residual deviance in the Poisson model indicate a lack of fit?
+
+```{r}
+drinks.pois <- glm(drinks ~ offcampus + sex, 
+               family = poisson, 
+               data = drinks.data)
+
+summary(drinks.pois)
+```
+
+Yes, the residual devaince (230.4) is much greater than the df (74), indicating potential lack of fit.
+
+2. What variables might be useful to predict the "0"s? Create an indicator variable for "zero drinks" and create graphs and/or tables to identify variables that may be good predictors of "zero drinks".
+
+```{r}
+drinks.data <- drinks.data %>%
+  mutate(zerodrinks = ifelse(drinks == 0, 1, 0))
+
+
+prop.table(table(drinks.data$sex, drinks.data$zerodrinks, dnn = c("sex", "zerodrinks")), margin = 1)
+prop.table(table(drinks.data$offcampus, drinks.data$zerodrinks, dnn = c("offcampus", "zerodrinks")), margin = 1)
+prop.table(table(drinks.data$firstyear, drinks.data$zerodrinks, dnn = c("firstyear", "zerodrinks")), margin = 1)
+```
+
+> Females more likely than males to be "zero drinks" (50% of females vs 38% of males).
+> People living on campus were more likely to be "zero drinks" than off campus (50% of those on campus, compared to 14% of those off campus). First years were more likely to be zero drinks (67%) than non-first-years (only 40% were zero-drinks).
+
+> Based on this analysis, the "Off Campus" variable seems like it may be more important than the first years variable.
+
+# In class work
+
+3. Regardless of your answers to #2, create a ZIP model like the one in the textbook: the Poisson part has variables for offcampus and sex, the "Logistic" part has a variable for firstyear. 
+
+```{r}
+drinks.zip <- zeroinfl(drinks ~  offcampus + sex | 
+                     firstyear,
+                   data=drinks.data)
+summary(drinks.zip)
+```
+
+a. Note the last line of the zip summary output says
+
+`Log-likelihood: -140.8 on 5 Df`
+
+The df is the number of model parameters; The AIC is calculated as -2$\times$loglik + 2$\times$parameters. Verify that this matches the output of the AIC function.
+
+```{r}
+-2*(-140.8) +5*2
+AIC(drinks.zip)
+```
+
+
+
+b. How many parameters are in the Poisson part and how many parameters are in the Logistic part of this ZIP model?
+
+> 3 in the Poisson part, 2 in the logistic part (just count the betas!)
+
+
+c. Interpret each of the slope coefficients in the ZIP model. Note that R refers to the Poisson parts with the prefix "count_" and the logistic parts with the prefix "zero_"
+```{r}
+coef(drinks.zip)
+exp(coef(drinks.zip))
+```
+
+
+Count_Intercept:  For female students living on campus who drink, the average number of drinks in a weekend is 2.12. 
+
+count_offcampus: For students who drink, those living off campus are expected to consume 1.52 times more drinks in a weekend than those on campus, after accounting for sex. 
+
+count_sexm: Male students who drink consume on average 2.78 times as many drinks in a weekend as female students, holding on/off campus status constant.
+
+zero_Intercept: 
+The odds of a non-firstyear student being a non-drinker is 0.547, which corresponds to a probability of 0.353, or 35.3% of non-firstyear students being non-drinkers.
+
+zero_firstyear: First years students have 3.11 times greater odds of being non-drinkers than non-first year students.  (Note: this corresponds to about 63% of firstyears being non-drinkers). 
+
+
+3. Use the Vuong test to determine whether the ZIP model is an improvement over the ordinary Poisson model:
+
+```{r}
+vuong(drinks.pois, drinks.zip) 
+```
+
+> There is strong evidence that the ZIP model is an improvement over the standard Poisson regression model.
+
+4. We see that firstyear status has a p-value of only 0.062. If we want to fit a simpler model that has only the intercept in the "Logistic part" of the model, we put in a "1". Compare this model to the ZIP model that includes firstyear as a predictor in the logistic part. 
+
+```{r}
+drinks2.zip <- zeroinfl(drinks ~  offcampus + sex | 
+                     1,
+                   data=drinks.data)
+summary(drinks2.zip)
+AIC(drinks2.zip)
+```
+
+The AIC's are pretty similar for the two models. We could do a likelihood ratio since these are nested!
+The anova function isn't set up to work with pscl::zeroinfl type models however. We COULD just compute it "by hand" or use the lmtest::lrtest() function.
+
+```{r, error = TRUE}
+# anova gives error: 
+anova(drinks.zip, drinks2.zip, test = "Chisq") # DOESN'T WORK
+
+# Could do "by hand" : 
+(loglik1 <- summary(drinks.zip)$loglik)
+(loglik2 <- summary(drinks2.zip)$loglik)
+2*(loglik1 - loglik2)  # Likelihood Ratio Test statistic
+1 - pchisq(3.5238, df = 1)    # use 1 df, because a difference of 1 parameter.
+
+#Or use lmteset package. 
+lmtest::lrtest(drinks.zip,drinks2.zip)
+```
+
+
+
+5. Based on your EDA, what do you think would be a good model for these data? Fit the model here and practice interpreting the regression coefficients.
+
+Based on the EDA, offcampus was better than first year. 
+```{r}
+drinks3.zip <- zeroinfl(drinks ~  sex  + offcampus| 
+                          offcampus,
+                        data = drinks.data)
+
+summary(drinks3.zip)
+exp(coef(drinks3.zip))
+AIC(drinks3.zip)
+
+0.14 - 1
+
+drinks4.zip <- zeroinfl(drinks ~  sex | 
+                          offcampus,
+                        data = drinks.data)
+
+summary(drinks4.zip)
+
+
+drinks5.zip <- zeroinfl(drinks ~  sex + offcampus| 
+                          1,
+                        data = drinks.data)
+
+
+summary(drinks5.zip)
+
+AIC(drinks3.zip)
+AIC(drinks4.zip)
+AIC(drinks5.zip)
+```
+
+> EDA suggests offcampus may be more important than "first year." However, since only 7 out of 77 students live off campus, we don't have a lot of power to detect this effect. Not surprising then, when we include the variable in both the count and binary parts of the model, "offcampus" is not significant. By comparing drinks4.zip to drinks5.zip, we see that they have similar AICs. However drinks5.zip, which includes offcampus in the count portion of the model, the p-value is significant, whereas the p-value is not signifcant if we inlcude offcampus only in the binary part. There I choose drinks5.zip as my preferred model. 
+
+```{r}
+coef(drinks5.zip)
+exp(coef(drinks5.zip))
+
+.71/(1 + .71)
+```
+
+Odds of not drinking are 0.71 ==> We estimate 41% of students overall, do not drink alcohol. (Note this matches the observed proportion of 36/77 = 0.46 of students drinking 0 drinks.)
+
+For on-campus, female students who do drink, average drinks is 2.11
+
+For students who drink alcohol, average number is 2.8 times higher for male than female students, controlling for living on or off campus. 
+
+For students who drink alcohol, students living off campus drink 1.5 times more drinks on average, holding sex constant.
+
+
+# Fishing
+For 250 camping parties at a park, the number of fish caught (`count`), number of people in the party (`persons`), number of children in the party (`child`), and whether or not they brought a camper (`camper`). We also have recorded their length of stay, in days (`LOS`).
+
+```{r}
+library(tidyverse)
+library(pscl)
+fish <- read_csv("~/Stats_316_F24/Class/Data/fish2.csv")
+```
+
+
+Basic dataset information:
+```{r}
+dim(fish)
+head(fish)
+tail(fish)
+str(fish)
+summary(fish)
+```
+
+250 rows, 5 variables.
+indicator for camper (0, 1); 1-4 people in party, 0-3 children, LOS 3 - 29.4 days, between 0-149 fish caught. No missing values, nothing apparently weird, other than "29.4 days" for the stay... why is this a partial day?
+
+
+# Exploratory Data Analysis
+```{r}
+ggplot(fish, aes(count)) +
+  geom_histogram() + 
+  xlab("number of fish caught")
+
+ggplot(fish, aes(y=count, x=persons)) + 
+  geom_jitter() +
+  ylab("number of fish caught") + 
+  xlab("people in party")
+
+ggplot(fish, aes(count/LOS)) + 
+  geom_histogram() + 
+  xlab("number of fish caught per day")
+
+ggplot(fish, aes(y=count, x=LOS)) + 
+  geom_jitter() +
+  ylab("number of fish caught") + 
+  xlab("Length of Stay")
+```
+
+1. What does the plot of "Length of Stay" vs "Fish caught" suggest about the need for an offset?
+
+>The number of fish caught is related to the length of stay. It makes more sense to use "LOS" as an offset, then we are modeling fish caught per day.
+
+
+2. The number of fish caught may depend differently on the number of children compared to the number of adults in the party. From "persons" and "children" we create two new variables. Describe each of these variables.
+
+```{r}
+fish <- fish %>%
+  mutate(adults = persons - child,
+         children.present = if_else(child > 0, "yes", "no"))
+```
+
+**Adults: counts total number of persons who are not children**
+**children.present is "yes" if the number of children is greater than 0, and no otherwise**
+
+Here are some plots that utilize the new variables:
+
+```{r}
+ggplot(fish, aes(y=count/LOS, x=child)) + 
+  geom_jitter() +
+  ylab("number of fish caught") + 
+  xlab("children in party") 
+
+ggplot(fish, aes(y=count/LOS, x=adults)) + 
+  geom_jitter() +
+  ylab("number of fish caught") + 
+  xlab("adults in party") 
+
+ggplot(fish, aes(y=count/LOS, x=adults)) + 
+  geom_jitter() +
+  ylab("number of fish caught") + 
+  xlab("adults in party") + facet_grid(.~children.present)
+
+
+ggplot(fish, aes(fill =  (count==0), x = children.present)) + 
+  geom_bar(position= "dodge")
+
+ggplot(fish, aes(fill =  (count==0), x = child)) + 
+  geom_bar(position= "fill")
+```
+
+
+# Summary Statistics Tables
+```{r}
+fish  %>% 
+  group_by(adults) %>% 
+  summarise(MeanFish=mean(count/LOS), 
+            VarFish=var(count/LOS),
+            n=n())
+```
+
+
+3. Fit a reasonable Poisson regression model.
+
+```{r}
+fish.pois <- glm(count ~ adults + child, offset = log(LOS), family = poisson, data = fish)
+summary(fish.pois)
+```
+
+
+4. Fit a ZIP model. 
+```{r}
+fish.zip <- zeroinfl(count ~ adults +child| child, offset = log(LOS), data = fish)
+summary(fish.zip)
+AIC(fish.zip)
+```
+
+
+5. Which model is better, your ZIP model or Poisson model?
+
+```{r}
+vuong(fish.zip, fish.pois)
+```
+
+Models do not need to be nested in order to use the Vuong test. 
+
+In this case, the p-value is < 0.05, and so we conclude that the ZIP model is significantly better than the Poisson model. 
+The AIC is also much lower in the ZIP model (1045 vs 1141), and so we prefer the ZIP over Poisson.
+The ZIP model is a better fit to the data.
+
+

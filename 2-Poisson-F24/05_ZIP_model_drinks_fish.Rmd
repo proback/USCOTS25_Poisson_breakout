@@ -1,0 +1,232 @@
+---
+title: "ZIP model"
+author: "Laura Boehm Vock"
+date: "9/24/2021"
+output: html_document
+---
+
+Learning goals 
+- Identify when a ZIP may be needed and why
+- Fit a ZIP model with R package pscl
+- Interpret coefficients from the poisson and binary parts of a ZIP model
+- Write down a ZIP model with proper notation
+- Use the Vuong test to check if the ZIP model is better than ordinary poisson.
+
+# Before class
+
+# Weekend Drinking
+
+This replicates the Weekend Drinking data analysis in Ch 4 of the textbook.
+
+```{r, message = FALSE}
+library(tidyverse)
+library(pscl) ### Need this library for ZIP model
+
+drinks.data <- read_csv("~/Stats_316_F24/Class/Data/weekendDrinks.csv")
+head(drinks.data)
+
+drinks.data <- drinks.data %>%
+  mutate(offcampus = ifelse(dorm == "off campus", 1, 0),
+         firstyear = ifelse(dorm %in% c("kildahl", "kittlesby", "mohn"), 1, 0))
+```
+
+These graphs compare what counts for number of drinks are observed compared to what would be expected from a Poisson distribution with the same mean.
+
+```{r, message = FALSE}
+library(gridExtra) # for doing side by side ggplots
+
+(meandrinks <- mean(drinks.data$drinks))  # Here we assign with <-... putting ( ) around it prints it out too! 
+
+range(drinks.data$drinks)    # this tells us the range of values, 0:22 to use below.
+
+expected <- data.frame(drinks = 0:22,    
+                       count = dpois(0:22, lambda=meandrinks)*nrow(drinks.data))
+
+
+obs.hist <- ggplot(drinks.data, aes(drinks)) + 
+  geom_histogram(binwidth=1) +
+  ggtitle("Observed Counts") +
+  ylim(0, 37)  
+# Note: I first made this graph with the default ylim; 
+# then choose limits 0, 37 so that I can be sure both
+# histograms have the same height.
+
+exp.hist <- ggplot(expected, aes(x=drinks, y=count)) +
+  geom_col()+
+  ggtitle("Expected Counts")+
+  ylim(0,37)
+
+grid.arrange(obs.hist, exp.hist, ncol=1)  #grid.arrange is from the gridExtra package
+```
+
+
+1. Fit a regular Poisson model with `offcampus` and `sex` as explanatory variables. Does the residual deviance in the Poisson model indicate a lack of fit?
+
+
+
+2. What variables might be useful to predict the "0"s? Create an indicator variable for "zero drinks" and create graphs and/or tables to identify variables that may be good predictors of "zero drinks".
+
+```{r}
+drinks.data <- drinks.data %>%
+  mutate(zerodrinks = ifelse(drinks == 0, "zero", "notzero"))
+
+```
+
+
+# In class work
+
+3. Regardless of your answers to #2, create a ZIP model like the one in the textbook: the Poisson part has variables for offcampus and sex, the "Logistic" part has a variable for firstyear. 
+
+```{r}
+drinks.zip <- zeroinfl(drinks ~  offcampus + sex | 
+                     firstyear,
+                   data=drinks.data)
+summary(drinks.zip)
+```
+
+a. Note the last line of the zip summary output says
+
+`Log-likelihood: -140.8 on 5 Df`
+
+The df is the number of model parameters; The AIC is calculated as -2$\times$loglik + 2$\times$parameters. Verify that this matches the output of the AIC function.
+
+
+
+b. How many parameters are in the Poisson part and how many parameters are in the Logistic part of this ZIP model?
+
+
+
+c. Interpret each of the slope coefficients in the ZIP model. Note that R refers to the Poisson parts with the prefix "count_" and the logistic parts with the prefix "zero_"
+```{r}
+coef(drinks.zip)
+exp(coef(drinks.zip))
+```
+
+
+
+
+3. Use the Vuong test to determine whether the ZIP model is an improvement over the ordinary Poisson model:
+
+```{r}
+# vuong(drinks.pois, drinks.zip) 
+```
+
+
+
+4. We see that firstyear status has a p-value of only 0.062. If we want to fit a simpler model that has only the intercept in the "Logistic part" of the model, we put in a "1". Compare this model to the ZIP model that includes firstyear as a predictor in the logistic part. 
+
+
+
+
+5. Based on your EDA, what do you think would be a good model for these data? Fit the model here and practice interpreting the regression coefficients.
+
+
+
+# Fishing
+For 250 camping parties at a park, the number of fish caught (`count`), number of people in the party (`persons`), number of children in the party (`child`), and whether or not they brought a camper (`camper`). We also have recorded their length of stay, in days (`LOS`).
+
+```{r}
+library(tidyverse)
+library(pscl)
+fish <- read_csv("~/Stats_316_F24/Class/Data/fish2.csv")
+```
+
+
+Basic dataset information:
+```{r}
+dim(fish)
+head(fish)
+tail(fish)
+str(fish)
+summary(fish)
+```
+
+250 rows, 5 variables.
+indicator for camper (0, 1); 1-4 people in party, 0-3 children, LOS 3 - 29.4 days, between 0-149 fish caught. No missing values, nothing apparently weird, other than "29.4 days" for the stay... why is this a partial day?
+
+
+# Exploratory Data Analysis
+```{r}
+ggplot(fish, aes(count)) +
+  geom_histogram() + 
+  xlab("number of fish caught")
+
+ggplot(fish, aes(y=count, x=persons)) + 
+  geom_jitter() +
+  ylab("number of fish caught") + 
+  xlab("people in party")
+
+ggplot(fish, aes(count/LOS)) + 
+  geom_histogram() + 
+  xlab("number of fish caught per day")
+
+ggplot(fish, aes(y=count, x=LOS)) + 
+  geom_jitter() +
+  ylab("number of fish caught") + 
+  xlab("Length of Stay")
+```
+
+1. What does the plot of "Length of Stay" vs "Fish caught" suggest about the need for an offset?
+
+
+
+2. The number of fish caught may depend differently on the number of children compared to the number of adults in the party. From "persons" and "children" we create two new variables. Describe each of these variables.
+
+```{r}
+fish <- fish %>%
+  mutate(adults = persons - child,
+         children.present = if_else(child > 0, "yes", "no"))
+```
+
+
+Here are some plots that utilize the new variables:
+
+```{r}
+ggplot(fish, aes(y=count/LOS, x=child)) + 
+  geom_jitter() +
+  ylab("number of fish caught") + 
+  xlab("children in party") 
+
+ggplot(fish, aes(y=count/LOS, x=adults)) + 
+  geom_jitter() +
+  ylab("number of fish caught") + 
+  xlab("adults in party") 
+
+ggplot(fish, aes(y=count/LOS, x=adults)) + 
+  geom_jitter() +
+  ylab("number of fish caught") + 
+  xlab("adults in party") + facet_grid(.~children.present)
+
+
+ggplot(fish, aes(fill =  (count==0), x = children.present)) + 
+  geom_bar(position= "dodge")
+
+ggplot(fish, aes(fill =  (count==0), x = child)) + 
+  geom_bar(position= "fill")
+```
+
+
+# Summary Statistics Tables
+```{r}
+fish  %>% 
+  group_by(adults) %>% 
+  summarise(MeanFish=mean(count/LOS), 
+            VarFish=var(count/LOS),
+            n=n())
+```
+
+
+3. Fit a reasonable Poisson regression model.
+
+
+
+4. Fit a ZIP model. 
+
+
+
+5. Which model is better, your ZIP model or Poisson model?
+
+
+
+
+

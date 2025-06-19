@@ -1,0 +1,270 @@
+---
+title: 'Intro to Poisson Regression'
+subtitle: 'Case Study: Elephants'
+output:
+  html_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+Learning goals: 
+- Describe why Poisson regression is a better choice for count data than linear regression
+- Identify four conditions for Poisson regression
+- Fit a Poisson regression using R
+- Interpret parameters from a Poisson regression model in context
+- Evaluate conditions of a Poisson regression model
+
+> Complete 1 - 2 before class.
+
+```{r, setup, message=FALSE}
+library(tidyverse)
+library(gridExtra) 
+
+elephant <- read_csv("~/Stats_316_F24/Class/Data/elephant.csv") %>% 
+  rename(age=AGE, matings=MATINGS)
+elephant
+```
+
+Background information about the data is given in Guided Excercise 2, from section 4.11.2 of the textbook. 
+
+An article by Poole (1989) investigated whether mating success in male elephants increases with age and whether there is a peak age for mating success. To address this question, the research team followed 41 elephants for one year and recorded their ages and their number of matings.
+
+# Numerical and graphical summaries of elephant age and matings:
+
+```{r}
+summary(elephant)
+
+hist.age <- ggplot(data = elephant, aes(x = age)) + 
+  geom_histogram(bins = 8)
+hist.mate <- ggplot(data = elephant, aes(x = matings)) + 
+  geom_histogram(bins = 8)
+grid.arrange(hist.age, hist.mate, ncol=1)
+
+ggplot(data = elephant, aes(x = age, y = matings)) + 
+  geom_jitter() + 
+  geom_smooth(method="lm", se = FALSE) 
+```
+
+# Why does linear regression not work for this situation?
+
+1. Is it appropriate to use linear regression here? Evaluate the regression assumptions here.
+
+```{r}
+reg1 <- lm(matings ~ age, data=elephant)
+summary(reg1)
+
+par(mfrow= c(2,2))
+plot(reg1)
+```
+
+*There appears to be definite problems with equal variance (scale-location plot shows variance increasing with fitted value (number of matings)). QQ plot also is not quite normal looking. *
+
+
+2. A log transformation can sometimes be helpful for a right-skewed response variable. Let's investigate using the steps below. 
+
+a. What might be problematic about logging the number of matings?
+```{r}
+summary(elephant$matings)
+summary(log(elephant$matings))
+```
+
+*log of 0 is -infinity. :( *
+
+
+
+b. A close approximation that is commonly used, is to add 0.5 to each value before taking the log. Using this value as the response variable, fit the regression model, and comment on the assumptions.
+
+```{r}
+summary(elephant$matings)
+summary(log(elephant$matings + 0.5))
+
+ggplot(elephant, aes(x = log(matings + 0.5))) + 
+  geom_histogram()
+
+ggplot(data = elephant, aes(x = age, y = log(matings + 0.5))) + 
+  geom_jitter() + 
+  geom_smooth(method="lm", se = FALSE) 
+```
+
+```{r}
+reg2 <- lm(log(matings + 0.5) ~ age, data=elephant)
+summary(reg2)
+
+par(mfrow= c(2,2))
+plot(reg2)
+```
+
+*The scale location plot looks much better, but the distribution of residuals is clearly non-normal, as demonstrated by the QQ plot. Since both ends of the QQ plot are curving down, we see the residuals are skewed left in this case (see histogram below).* 
+
+```{r}
+par(mfrow=c(1,1))
+hist(reg2$resid)
+```
+
+
+> We'll start here in class!
+
+Let's compare the linear regression model and the Poisson regression model:
+
+### Linear Regression:
+$$Y \sim N(\mu, \sigma)$$
+$$\mu = \beta_0 + \beta_1 Age$$
+
+### Poisson Regression:
+
+$$ Y \sim Poisson(\lambda)$$
+
+$$ log(\lambda) = \beta_0 + \beta_1 Age$$
+
+
+
+#### Comparison of assumptions: 
+
+3. Using your textbook, identify the corresponding assumption from Poisson regression (first one is done for you). Check out section 4.2.1.
+
+Linear relationship  of Y and X   ------> Linear relationship of log($\lambda$) and X. 
+
+Independence --------> *Independence (SAME!)* (in this context, *elephants* are independent of each other)
+
+Normally distributed residuals (implies normal distribution of Y) -------> *Poisson distribution for Y*
+
+Equal Variance of residuals (or of Y) ------>  *Variance is equal to the mean ($\lambda$)*
+
+
+
+When we examine the original scatterplot of matings vs. age, we see the Poisson regression assumptions make more sense:
+
+* Slight curvature of relationship of Y and X, indicates log relationship would work.
+
+* Matings are a count response, making it suitable for Poisson distribution.
+
+* We see that variability in matings incresaes with expected number of matings (e.g. as age increases)
+
+
+# Fitting a Poisson Regression Model
+
+4. Use the code example below to fit a Poisson regression model
+```{r}
+# pois.elephant <- glm(RESPONSE ~ EXPLANATORY, data = DATASET, family = DISTRIBUTION)
+
+pois.elephant <- glm(matings ~ age,
+                     data = elephant,
+                     family=poisson)   #quotes on poisson are optional.
+summary(pois.elephant)
+```
+
+
+5. As when we fit a linear regression model with a log response, it is most relevant to interpret the coefficients on the log scale. Find the exponentiated coefficients and interpret them here.
+
+```{r}
+exp(coef(pois.elephant))
+
+# Note: you can pipe this too.
+pois.elephant %>% coef() %>% exp()
+```
+
+*Intercept: We should really avoid interpreting this because there are no 0 year old elephants in the study, nor should we extrapolate this model to 0 year old elephants. In general the interpretation of the intercept in a Poisson model is "When x = 0, the expected count for Y is exp(beta0)." In this case, for 0 year old elephants, we the average number of matings is 0.2.*
+
+*Slope on age: For each additional year of age, the expected number of matings increases by 7.1% (or 1.071 times).*
+
+
+It's a little tricky, but we can use geom_function to draw this curve:
+
+```{r}
+ggplot(elephant, aes(x = age, y = matings)) + 
+  geom_jitter() + 
+  geom_function(fun = function(x){exp(coef(pois.elephant)[1] + coef(pois.elephant)[2]*x)})
+```
+
+
+6. Is the increase in matings with age statistically significant? Find the p-value in the summary output and give an interpretation. 
+
+*There is strong evidence of a positive relationship of age and matings (p-value < 0.0001).*
+
+
+7. The test in the regression output is called a  "Wald test." A likelihood ratio test (also called a "Drop in Deviance Test") is generally more accurate.... although most often the results are pretty similar.  Conduct a LRT (DDT) by fitting a model with just an intercept called `fit0` and then compare models with the `anova` function. Be sure to specify test = "Chisq"
+
+```{r}
+fit0 <- glm(matings ~ 1, data = elephant,
+            family = "poisson")
+anova(fit0, pois.elephant, test = "Chisq")
+```
+
+*There is very strong evidence that increasing age is associated with an increase in the average number of matings (p < 0.0001). (As noted, these p-values are both <0.0001, but you can see that they are not exactly the same value.*
+
+
+8. Interpret the 95\% confidence interval for the slope on age in model `pois.elephant`.
+
+```{r}
+confint(pois.elephant) %>% exp()
+```
+
+*For each year increase in age, the average number of matings increases between 1.04 and 1.10 times.*
+
+*Alternative: For each year increase in age, the average number of matings increases by between 4 and 10\%.*
+
+9. The researchers are also interested in whether there is a peak age. Add a squared age term to the model and conduct a drop in deviance test. Give an interpretation of your result.
+
+```{r}
+pois.elephant2 <- glm(matings ~ age + I(age^2), family=poisson, data=elephant)
+summary(pois.elephant2)
+
+anova(pois.elephant, pois.elephant2, test = "Chisq")
+```
+
+*There is not evidence that a second order model (squared term) is better than the first order model (p=0.6667). *
+
+
+
+
+This plot puts the quadratic and linear models on the same graph, and we can visually see that adding the quadratic term (red dashed line) does in fact, seem to make little difference in the fit.
+```{r}
+pois.elephant2 <- glm(matings ~ age + I(age^2), family=poisson, data=elephant)
+
+ggplot(elephant, aes(x = age, y = matings)) + 
+  geom_jitter() + 
+  geom_function(fun = function(x){exp(coef(pois.elephant)[1] + coef(pois.elephant)[2]*x)}) + 
+  geom_function(fun = function(x){exp(coef(pois.elephant2)[1] + coef(pois.elephant2)[2]*x + coef(pois.elephant2)[3]*x^2)}, col = "red") 
+```
+
+
+# Evaluating the Poisson Model
+
+Some simple EDA to check the Poisson assumptions. 
+
+a. Plot the empirical log means against the explanatory variable
+
+```{r}
+elephantmeans <- elephant %>% 
+  group_by(age) %>% 
+  summarize(logmean = log(mean(matings)))
+
+ggplot(elephantmeans, aes(x = age, y = logmean)) +
+  geom_point()+
+  geom_smooth(method = 'lm', se = FALSE)
+```
+
+This looks like a linear relationship!
+
+b. Compare the mean and variance of matings by age.
+
+```{r}
+elephant %>% 
+  group_by(age) %>%
+  summarize(mean = mean(matings), variance = var(matings), n = n())
+```
+
+The last column of the table shows the number of elephants at each age. We can see that often there is only one elephant observed at a particular age, and so we cannot find a variance.
+To fix this we can use the "cut_number" function. (See ?cut_number... also, ?cut_interval).
+
+```{r}
+elephant %>%
+  mutate(agegroup = cut_number(age, 5)) %>%
+  group_by(agegroup) %>%
+  summarize(mean = mean(matings), variance = var(matings), n = n()) 
+```
+
+Though the mean is not exactly equal to variance, the variance is increasing as the mean increases, so that is a good sign.
+
+
+

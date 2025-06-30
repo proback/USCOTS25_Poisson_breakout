@@ -9,6 +9,88 @@ format:
       \titlegraphic{\includegraphics[width=0.4\paperwidth]{StOlaf.jpg}}
 ---
 
+```{r}
+#| message: FALSE
+#| warning: FALSE
+
+# Packages required for Chapter 4
+library(multcomp)
+library(kableExtra)
+library(MASS)
+library(pscl)
+library(tidyverse)
+```
+
+## A quick initial survey!
+
+Please [click here](https://forms.gle/AWDgRuwTHW7YfLDZ9) or use the following QR code:
+
+```{r out.width="50%", out.height="50%"}
+#| echo: FALSE
+
+knitr::include_graphics("qr-code.png")
+```
+
+
+## Poisson regression at St. Olaf
+
+-   02-04: Not taught.  Statistics concentration required Prob Theory and Math Stat plus 2 electives.
+-   04-18: Taught as part of Advanced Statistical Modeling (Stat 316).  Concentration required Statistical Modeling (Stat 272) and 316 plus 2 electives.
+-   18-24: Still taught in Stat 316.  Concentration renamed "Statistics and Data Science" and required 272 and Intro to Data Science plus 2 electives.  Stat 316 now counts as an upper level elective.
+-   24-current: Still taught in Stat 316.  Concentration became a major.  Stat 316 counts as a "Level 3 Stats Depth" elective course.
+
+
+## Advanced Statistical Modeling at St. Olaf
+
+-   Covers generalized linear models (Poisson regr, binomial regr, negative binomial regr, zero-inflated models, hurdle models, etc.) and multilevel modeling
+-   Prerequsites: Intro Stats and Stat Modeling (nothing else -- calculus, linear algebra, computing, ...)
+-   Applied focus using R
+-   Uses [Beyond Multiple Linear Regression: Applied Generlized Linear Models and Multilevel Models in R](https://bookdown.org/roback/bookdown-BeyondMLR/) by Roback and Legler.  Second edition by Roback, Boehm Vock, and Legler expected by Fall 2026.
+
+
+## First case study: Philippine households
+
+```{r}
+#| include: FALSE
+
+fHH1 <- read_csv("data/philippines.csv") |>
+  mutate(location = as_factor(location),
+         roof = as_factor(roof))
+```
+
+-   International agencies often use household size to determine the magnitude of the household needs
+-   Want to discern factors associated with larger households
+-   Data is subset from 2015 Philippine Statistics Authority's Family Income and Expenditure Survey (FIES)
+-   Primary response is a count, which can make linear regression problematic
+
+
+## Philippine household data
+
+:::: {.columns}
+
+::: {.column width="50%"}
+Key variables:
+
+-   `location` = region (Central Luzon, Davao, Ilocos, Metro Manila, or Visayas)
+-   `age` = the age of the head of household
+-   `total` = the number of people in the household other than the head
+-   `numLT5` = the number in the household under 5 years of age 
+-   `roof` = the type of roof (stronger material can be used as a proxy for greater wealth)
+:::
+
+::: {.column width="50%"}
+```{r}
+#| echo: FALSE
+
+knitr::include_graphics("data/map_of_philippines.jpg")
+```
+:::
+
+::::
+
+
+
+
 ## Sheena Easton and Game Theory
 
 Sheena Easton describes the following scenario for her baby:

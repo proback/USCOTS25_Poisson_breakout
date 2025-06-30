@@ -89,6 +89,184 @@ knitr::include_graphics("data/map_of_philippines.jpg")
 ::::
 
 
+## Poisson distribution
+
+$$
+P(Y_i=y_i) = \frac{e^{-\lambda}\lambda^{y_i}}{{y_i}!} \quad \textrm{for} \quad y_i = 0, 1, \ldots, \infty,
+$$
+
+Note that both $E(Y_i) = \lambda_i$ and $Var(Y_i) = \lambda_i$.
+
+```{r}
+#| label: fig-multPois
+#| fig-cap: |
+#|   Poisson distributions with $\lambda = 0.5,\ 1$, and $5$. 
+#| fig-subcap: 
+#|   - $\lambda = 0.5$
+#|   - $\lambda = 1$
+#|   - $\lambda = 5$
+#| echo: FALSE
+#| message: FALSE
+#| warning: FALSE
+#| layout-ncol: 3
+#| layout-nrow: 1
+#| out-width: 60%
+
+#poissonPlots
+plotPois <- function(lam){
+  yp = 0:10000 # possible values
+  pd <- data.frame(x = rpois(yp, lam))  # generate random deviates
+  breaks <- pretty(range(pd$x), n = nclass.FD(pd$x), min.n = 1)  
+  # pretty binning
+  #bwidth <- breaks[2] - breaks[1]
+  ggplot(pd, aes(x = x)) + 
+    geom_histogram(aes(y = ..count.. / sum(..count..)), 
+                   binwidth = .25) +
+    xlab("number of events") + 
+    ylab("probability") + 
+    xlim(-1,13)
+}
+
+Pois1 <- plotPois(0.5)
+Pois2 <- plotPois(1)
+Pois3 <- plotPois(5) + scale_y_continuous(breaks = c(0, 0.1))
+Pois1
+Pois2
+Pois3
+```
+
+
+## Poisson regression model
+
+\begin{equation*}
+log(\lambda_i)=\beta_0+\beta_1 x_i
+\end{equation*}
+where the observed values $Y_i \sim$ Poisson with $\lambda=\lambda_i$ for a given $x_i$. 
+
+
+#### Poisson model conditions:
+
+1. __Poisson Response__ The response variable is a count per unit of time or space, described by a Poisson distribution.
+2. __Independence__ The observations must be independent of one another.
+3. __Mean=Variance__ By definition, the mean of a Poisson random variable must be equal to its variance.
+4. __Linearity__ The log of the mean rate, log($\lambda$), must be a linear function of x.
+
+
+## Poisson regression conditions: A graphical look
+
+```{r}
+#| label: fig-OLSpois
+#| fig-cap: |
+#|   Comparison of regression models. 
+#| fig-subcap: 
+#|   - Linear Regression
+#|   - Poisson Regression
+#| echo: FALSE
+#| message: FALSE
+#| warning: FALSE
+#| layout-ncol: 2
+#| layout-nrow: 1
+
+## Sample data for graph of OLS normality assumption
+## Code from https://stackoverflow.com/questions/31794876/ggplot2-how-to-curve-small-gaussian-densities-on-a-regression-line?rq=1
+
+set.seed(0)
+dat <- data.frame(x = (x = runif(10000, 0, 50)),
+                  y = rnorm(10000, 10 * x, 100))
+
+## breaks: where you want to compute densities
+breaks <- seq(0, max(dat$x), len=5)
+dat$section <- cut(dat$x, breaks)
+
+## Get the residuals
+dat$res <- residuals(lm(y ~ x, data=dat))
+
+## Compute densities for each section, flip the axes, add means 
+## of sections.  Note: densities need to be scaled in relation 
+## to section size (2000 here)
+dens <- do.call(rbind, lapply(split(dat, dat$section), function(x) {
+  d <- density(x$res, n = 5000)
+  res <- data.frame(x = max(x$x)- d$y * 1000, y = d$x + mean(x$y))
+  res <- res[order(res$y), ]
+  ## Get some data for normal lines as well
+  xs <- seq(min(x$res), max(x$res), len = 5000)
+  res <- rbind(res, 
+               data.frame(y = xs + mean(x$y),
+                          x = max(x$x) - 1000*dnorm(xs, 0, sd(x$res))))
+  res$type <- rep(c("empirical", "normal"), each = 5000)
+  res
+}))
+dens$section <- rep(levels(dat$section), each = 10000)
+
+ols_assume <- ggplot(dat, aes(x, y)) +
+  geom_point(size = 0.1, alpha = .25) +
+  geom_smooth(method = "lm", fill = NA, lwd = 2) +
+  geom_path(data = dens[dens$type == "normal",], 
+            aes(x, y, group = section), 
+            color = "salmon", 
+            lwd = 1.1) +
+  theme_bw() +
+  geom_vline(xintercept = breaks, lty = 2)
+
+# Now make Poisson regression picture
+set.seed(0)
+dat <- data.frame(x = (x = runif(1000, 0, 20)),
+                  y = rpois(1000, exp(.1 * x)))
+
+## breaks: where you want to compute densities
+breaks <- seq(2, max(dat$x), len = 5)
+dat$section <- cut(dat$x, breaks)
+
+## Get the residuals
+dat$res <- dat$y - .1 * dat$x
+
+## Compute densities for each section, flip the axes, add means
+## of sections.  Note: densities need to be scaled in relation 
+## to section size
+dens <- do.call(rbind, lapply(split(dat, dat$section), function(x) {
+  d <- density(x$res, n = 500)
+  res <- data.frame(x = max(x$x)- d$y * 10, y = d$x + mean(x$y))
+  res <- res[order(res$y), ]
+  ## Get some data for poisson lines as well
+  xs <- seq(min(x$y), max(x$y), len = 500)
+  res <- rbind(res, 
+               data.frame(y = xs,
+                          x = max(x$x) - 
+                            10*dpois(round(xs), exp(.1*max(x$x)))))
+  res$type <- rep(c("empirical", "poisson"), each = 500)
+  res
+}))
+dens$section <- rep(levels(dat$section), each = 1000)
+
+pois_assume <- ggplot(dat, aes(x, jitter(y, .25))) +
+  geom_point(size = 0.1) +
+  geom_smooth(method = "loess", fill = NA, lwd = 2) +
+  geom_path(data=dens[dens$type=="poisson",], 
+            aes(x, y, group = section), 
+            color = "salmon", 
+            lwd = 1.1) +
+  theme_bw() + 
+  ylab("y") + 
+  xlab("x") +
+  geom_vline(xintercept = breaks, lty = 2)
+
+ols_assume
+pois_assume
+```
+
+
+## Pause to Ponder
+
+With your neighbor(s), compare the Poisson regression conditions to the usual LINE conditions in linear regression.  List similarities and differences.  What implications might the differences have for modeling and checking conditions?
+
+
+## Differences with linear regression (LLSR)
+
+1. For each level of X, the responses follow a Poisson distribution (Condition 1). For Poisson regression, small values of $\lambda$ are associated with a distribution that is noticeably skewed with lots of small values and only a few larger ones. As $\lambda$ increases the distribution of the responses begins to look more and more like a normal distribution.
+2. In the LLSR model, the variation in $Y$ at each level of X, $\sigma^2$, is the same. For Poisson regression the responses at each level of X become more variable with increasing means, where variance=mean (Condition 3). 
+3. In the case of LLSR, the mean responses for each level of X, $\mu_{Y|X}$, fall on a line. In the case of the Poisson model, the mean values of $Y$ at each level of $X$, $\lambda_{Y|X}$, fall on a curve, not a line, although the logs of the means should follow a line (Condition 4).
+
+
 
 
 ## Sheena Easton and Game Theory

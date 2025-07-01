@@ -55,7 +55,9 @@ knitr::include_graphics("qr-code.png")
 
 fHH1 <- read_csv("data/philippines.csv") |>
   mutate(location = as_factor(location),
-         roof = as_factor(roof))
+         roof = as_factor(roof),
+         age2 = age*age,
+         visayas = ifelse(location == "Visayas", 1, 0))
 ```
 
 -   International agencies often use household size to determine the magnitude of the household needs
@@ -267,75 +269,462 @@ With your neighbor(s), compare the Poisson regression conditions to the usual LI
 3. In the case of LLSR, the mean responses for each level of X, $\mu_{Y|X}$, fall on a line. In the case of the Poisson model, the mean values of $Y$ at each level of $X$, $\lambda_{Y|X}$, fall on a curve, not a line, although the logs of the means should follow a line (Condition 4).
 
 
+## Exploratory data analysis
+
+```{r}
+#| label: fig-eda
+#| fig-cap: |
+#|   EDA: selected plots 
+#| fig-subcap: 
+#|   - Distribution of household size across all 5 Philippine regions.
+#|   - The log of the mean household sizes by age of the head of household, with loess smoother.
+#| echo: FALSE
+#| message: FALSE
+#| warning: FALSE
+#| layout-ncol: 2
+#| layout-nrow: 1
+#| out-width: 60%
+
+total_dist <- ggplot(fHH1, aes(total)) + 
+  geom_histogram(binwidth = .25, 
+                 color = "black", 
+                 fill = "white") + 
+  xlab("Number in the house excluding head of household") +
+  ylab("Count of households")
+
+## Checking linearity assumption: Empirical log of the means plot
+sumStats <- fHH1 |> 
+  group_by(age) |> 
+  summarise(mntotal = mean(total),
+            logmntotal = log(mntotal), 
+            n=n())
+
+age_vs_total <- ggplot(sumStats, aes(x=age, y=logmntotal)) +
+  geom_point()+
+  geom_smooth(method = "loess", linewidth = 1.5)+
+  xlab("Age of head of the household") +
+  ylab("Log of the empirical mean number in the house") 
+
+total_dist
+age_vs_total
+```
 
 
-## Sheena Easton and Game Theory
+## Initial model
 
-Sheena Easton describes the following scenario for her baby:
+\begin{equation*}
+log(\hat{\lambda}) = 1.55 - 0.0047 \textrm{age}
+\end{equation*}
 
-1.  Takes the morning train
-2.  Works from nine 'til five
-3.  Takes another train home again
-4.  Finds Sheena Easton waiting for him
+```{r}
+modela <- glm(total ~ age, family = poisson, data = fHH1)
+```
 
-## A Total Conflict Game Between Sheena Easton and Her Baby
+\small
+```{r}
+#| echo: FALSE
+#| message: FALSE
+#| comment: '##'
 
-|                        | Stays Home    | Goes to Work  |
-|------------------------|---------------|---------------|
-| **Baby Home Again**    | -100, **100** | **100**, 0    |
-| **Baby Stays at Work** | **50**, 0     | -100, **100** |
+coef(summary(modela))
+```
 
-Sheena Easton and her baby are playing a **zero-sum (total conflict) game**.
+\normalsize
+How can the coefficient estimates be interpreted? 
 
--   Akin to Holmes-Moriarty game (see: von Neumann and Morgenstern)
--   Solution: **mixed strategy**
 
-## Rick Astley's Re-election Platform
+## Interpreting model coefficients
 
-Rick Astley's campaign promises:
+If your students have interpreted coefficients with a transformed response in linear regression, or log odds in logistic regression, this is similar.
 
--   Never gonna give you up.
--   Never gonna let you down.
--   Never gonna run around and desert you.
--   Never gonna make you cry.
--   Never gonna say goodbye.
--   Never gonna tell a lie and hurt you.
+Consider how the estimated mean number in the house, $\lambda$, changes as the age of the household head increases by an additional year. 
 
-Are these promises (if credible) sufficient to secure re-election?
+\small
+$$
+\begin{aligned}
+log(\lambda_X) &= \beta_0 + \beta_1X \\
+log(\lambda_{X+1}) &= \beta_0 + \beta_1(X+1) \\
+log(\lambda_{X+1})-log(\lambda_X) &=  \beta_1 \\
+log \left(\frac{\lambda_{X+1}}{\lambda_X}\right)   &= \beta_1\\
+\frac{\lambda_{X+1}}{\lambda_X} &= e^{\beta_1}
+\end{aligned}
+$$ {#eq-rateRatio}
 
-## Rick Astley and Median Voter Theorem
+\normalsize
+These results suggest that by exponentiating the coefficient on age we obtain the *multiplicative* factor by which the mean count changes. 
 
-Whereas these pledges conform to the preferences of the **median voter**, we expect Congressman Astley to secure re-election.
 
-## Caribbean Queen and Operation Urgent Fury
+## Interpreting model coefficients (continued)
 
-Billy Ocean released "Caribbean Queen" in 1984.
+In this case, the mean number in the house changes by a factor of $e^{-0.0047}=0.995$ or decreases by 0.5\% (since $1-.995 = .005$) with each additional year older the household head is; 
 
--   Emphasized sharing the same dream
--   Hearts beating as one
+Or, we predict a 0.47\% *increase* in mean household size for a 1-year *decrease* in age of the household head (since $1/.995=1.0047$). 
 
-"Caribbean Queen" is about the poor execution of Operation Urgent Fury.
+The quantity on the left-hand side of @eq-rateRatio is referred to as a __rate ratio__  or __relative risk__, \index{relative risk (rate ratio)} and it represents a percent change in the response for a unit change in X.  
 
--   Echoed JCS chairman David Jones' frustrations with military establishment.
 
-Billy Ocean is advocating for what became the Goldwater-Nichols Act.
+## Multiple Poisson regression
 
--   Wanted to take advantage of **economies of scale**, resolve **coordination problems** in U.S. military.
+Most significant ideas from multiple linear regression are reinforced by Poisson regression:
 
-## The Good Day Hypothesis
+-   hypothesis testing
+-   confidence intervals
+-   indicator variables
+-   categorical variables (reference level / Tukey HSD)
+-   squared terms
+-   interaction terms
+-   control for / adjusting for / holding constant
+-   checking violations of model conditions
+-   maximum likelihood estimates (equals least squares in linear regr)
 
-We know the following about Ice Cube's day.
 
-1.  The Lakers beat the Supersonics.
-2.  No helicopter looked for a murder.
-3.  Consumed Fatburger at 2 a.m.
-4.  Goodyear blimp: "Ice Cube's a pimp."
+## Potential final model
 
-## The Good Day Hypothesis
+```{r}
+modela2 <- glm(total ~ age + age2, family = poisson, data = fHH1)
+```
 
-This leads to two different hypotheses:
+\scriptsize
+```{r}
+#| echo: TRUE
 
--   $H_0$: Ice Cube's day is statistically indistinguishable from a typical day.
--   $H_1$: Ice Cube is having a good (i.e. greater than average) day.
+modela2L <- glm(total ~ age + age2 + location, family = poisson, data = fHH1)
+```
 
-These hypotheses are tested using archival data of Ice Cube's life.
+```{r}
+#| echo: FALSE
+#| message: FALSE
+#| comment: '##'
+
+coef(summary(modela2L))
+```
+
+\small
+For example, $\hat{\beta}_6=-0.0194$ indicates that, after controlling for the age of the head of household, the log mean household size is 0.0194 lower for households in the Davao Region than for households in the reference location of Central Luzon. 
+
+In more interpretable terms, mean household size is $e^{-0.0194}=0.98$ times "higher" (i.e., 2\% lower) in the Davao Region than in Central Luzon, when holding age constant.  
+
+Maximum estimated additional number in the house occurs when the head of the household is around 50 years old, after adjusting for location.
+
+
+## Potential final model (continued)
+
+\normalsize
+To test for the effect of location, use a drop-in-deviance test (analogous to an extra-sum-of-squares F test in linear regression):
+
+```{r}
+#| message: FALSE
+
+drop_in_dev <- anova(modela2, modela2L, test = "Chisq")
+```
+
+```{r}
+#| echo: FALSE
+#| message: FALSE
+#| comment: '##'
+
+did_print <- data.frame(
+  ResidDF = drop_in_dev$`Resid. Df`,
+  ResidDev = drop_in_dev$`Resid. Dev`,
+  Deviance = drop_in_dev$Deviance, 
+  Df = drop_in_dev$Df,
+  pval = drop_in_dev$`Pr(>Chi)`
+)
+row.names(did_print) <- row.names(drop_in_dev)
+did_print
+```
+
+Adding the four terms corresponding to location to the quadratic model with age produces a statistically significant improvement $(\chi^2=13.144, df = 4, p=0.0106)$, so there is significant evidence that mean household size differs by location, after controlling for age of the head of household. 
+
+
+## Lack of fit!
+
+When a model is true, we can expect the residual deviance to be distributed as a $\chi^2$ random variable with degrees of freedom equal to the model's residual degrees of freedom.  
+
+Our final model has a residual deviance of 2187.8 with 1493 df. The probability of observing a deviance this large if the model fits is essentially 0, saying that there is significant evidence of lack-of-fit. 
+
+There are several reasons why **lack-of-fit** \index{lack-of-fit} may be observed:
+
+-   We may be missing important covariates or interactions.  
+-   There may be extreme observations that cause the deviance to be larger than expected. 
+-   There may be a problem with the Poisson model.  In particular, the Poisson model has only a single parameter, $\lambda$, for each combination of the levels of the predictors which must describe both the mean and the variance.
+
+
+## Overdispersion
+
+Often in Poisson models the variances in the response are larger than the corresponding means at different levels of the predictors.  The response is then considered to be **overdispersed**  
+
+```{r}
+#| label: fig-mean-var2
+#| fig-cap: |
+#|   Mean and variance of predicted household sizes.  
+#| fig-subcap: 
+#|   - Linear fit
+#|   - Loess smoother
+#| echo: FALSE
+#| message: FALSE
+#| warning: FALSE
+#| layout-ncol: 2
+#| layout-nrow: 1
+#| out-width: 60%
+
+final_qp <- fHH1 |> 
+  mutate(pred = predict(modela2L), 
+         grouping = cut_number(pred, 30)) |>
+  group_by(grouping) |>
+  summarize(meantotal = mean(total), 
+            vartotal = var(total)) |>
+  ggplot(aes(x = meantotal, y = vartotal)) +
+    geom_point() + 
+    geom_smooth(method = "lm") + 
+    geom_abline(slope = 1, intercept = 0) +
+    labs(x = "Mean household size",
+         y = "Variance in household size")
+
+final_nb <- fHH1 |> 
+  mutate(pred = predict(modela2L), 
+         grouping = cut_number(pred, 30)) |>
+  group_by(grouping) |>
+  summarize(meantotal = mean(total), 
+            vartotal = var(total)) |>
+  ggplot(aes(x = meantotal, y = vartotal)) +
+    geom_point() + 
+    geom_smooth(span = 2) + 
+    geom_abline(slope = 1, intercept = 0) +
+    labs(x = "Mean household size",
+         y = "Variance in household size")
+
+final_qp
+final_nb
+```
+
+
+## Quasi-Poisson models
+
+Without adjusting for overdispersion, we use incorrect, artificially small standard errors leading to artificially small p-values for model coefficients. 
+
+The simplest way to take overdispersion into account is to use an estimated dispersion factor to inflate standard errors.
+ 
+$\hat\phi=\frac{\sum(\textrm{Pearson residuals})^2}{n-p}$ where $p$ is the number of model parameters. 
+
+$SE_Q(\hat\beta)=\sqrt{\hat\phi}*SE(\hat\beta)$
+
+
+## Quasi-Poisson models (continued)
+
+\scriptsize
+```{r}
+modela2L_quasi <- glm(total ~ age + age2 + location,
+                      family = quasipoisson, 
+                      data = fHH1)
+```
+
+```{r}
+#| echo: FALSE
+#| message: FALSE
+#| comment: '##'
+
+coef(summary(modela2L_quasi))
+cat(" Residual deviance = ", summary(modela2L_quasi)$deviance, " on ",
+    summary(modela2L_quasi)$df.residual, "df", "\n",
+    "Dispersion parameter = ", summary(modela2L_quasi)$dispersion)
+```
+
+\normalsize
+In the absence of overdispersion, we expect the dispersion parameter estimate to be 1.0. The estimated dispersion parameter here is larger than 1.0 (1.415).
+
+For example, the standard error for the Visayas region term from a likelihood based approach is 0.0417, whereas the quasi-likelihood standard error is $\sqrt{1.415}*0.0417$ or 0.0497.  This term is still statistically significant at the 0.05 level under the quasi-Poisson model, but the evidence is not as strong (quasi-Poisson p-value of .024 vs. Poisson p-value of .007). 
+
+Furthermore, tests for individual parameters are now based on the t-distribution rather than a standard normal distribution, with test statistic $t=\frac{\hat\beta}{SE_Q(\hat\beta)}$ following an (approximate) t-distribution with $n-p$ degrees of freedom if the null hypothesis is true ($H_O:\beta=0$). 
+
+Drop-in-deviance tests can be similarly adjusted for overdispersion in the quasi-Poisson model.  $F=\frac{\textrm{drop in deviance}}{\textrm{difference in df}} / {\hat\phi}$ follows an (approximate) F-distribution when the null hypothesis is true ($H_0$: reduced model sufficient).  
+
+
+## Quasi-Poisson models (continued)
+
+We can take another look at our final model:
+
+```{r}
+#| message: FALSE
+
+modela2_quasi <- glm(total ~ age + age2,
+                     family = quasipoisson, 
+                     data = fHH1)
+drop_in_dev <- anova(modela2_quasi, modela2L_quasi, test = "F")
+```
+
+\scriptsize
+```{r}
+#| echo: FALSE
+#| message: FALSE
+#| comment: '##'
+
+did_print <- data.frame(
+  ResidDF = drop_in_dev$`Resid. Df`,
+  ResidDev = drop_in_dev$`Resid. Dev`,
+  F = drop_in_dev$F, 
+  Df = drop_in_dev$Df,
+  pval = drop_in_dev$`Pr(>F)`
+)
+row.names(did_print) <- row.names(drop_in_dev)
+did_print
+```
+
+\normalsize
+Here, after adjusting for overdispersion, we find that there is *not* statistically significant evidence at the 0.05 level ($F=2.32, p=.055$) that mean household size differs among regions after adjusting for age.  
+
+
+## Negative Binomial models
+
+A negative binomial model introduces another parameter in addition to $\lambda$, which gives the model more flexibility and, as opposed to the quasi-Poisson model, the negative binomial model assumes an explicit likelihood model.  
+
+Mathematically, you can think of the negative binomial model as a Poisson model where $\lambda$ is also random, following a gamma distribution. 
+
+These results are very similar to the quasi-Poisson model in terms of estimated coefficients (which can change), standard errors, test statistics, and p-values.
+
+
+## Pause to Ponder
+
+Check in with your neighbor(s).  What questions do you have at this point?  What can we clarify or discuss more fully?
+
+
+## Second case study: bald eagles
+
+```{r}
+#| include: FALSE
+
+# Load eagles data
+eagles <- read_csv("data/bald_eagles.csv") |>
+  mutate(weeks = hours / 168,
+         log_count_per_week = log(count_per_week + 0.5),
+         year_1981 = year - 1981)
+```
+
+Every year in late December, since 1921, birdwatchers in the Hamilton area of Ontario, Canada, have counted and recorded all the birds they see or hear in a day.
+
+The data was made available by the [Bird Studies Canada website](https://www.birdscanada.org/) and distributed through the R for Data Science TidyTuesday project.  
+
+We are particularly interested in how the Bald Eagle population has changed over time. 
+
+
+## Bald eagle data
+
+:::: {.columns}
+
+::: {.column width="60%"}
+Each row of `bald_eagles.csv` contains information about bald eagles counts in Hamilton, Ontario, for one year.  There are 37 rows covering 1981 through 2017.  The variables include:
+
+- `year` = year of data collection
+- `count` = number of birds observed
+- `hours` = total person-hours of observation period
+- `count_per_hour` = count divided by hours
+- `count_per_week` = count_per_hour multiplied by 168 hours per week
+:::
+
+::: {.column width="40%"}
+```{r}
+#| echo: FALSE
+
+knitr::include_graphics("data/Bald-Eagle.jpg")
+```
+
+\tiny
+Credit: © Ron Niebrugge/wildnatureimages
+:::
+
+::::
+
+
+## Exploratory data analysis
+
+\normalsize
+```{r}
+#| label: fig-eda-eagle
+#| fig-cap: |
+#|   EDA: selected plots 
+#| fig-subcap: 
+#|   - Histogram of number of bald eagle sitings by year.
+#|   - Bald eagle counts vs. year
+#|   - Hours of observation vs. year
+#| echo: FALSE
+#| message: FALSE
+#| warning: FALSE
+#| layout-ncol: 3
+#| layout-nrow: 1
+#| out-width: 60%
+
+count_dist <- ggplot(eagles, aes(x = count)) + 
+  geom_histogram(bins = 15, color = "black", fill = "white") +
+  xlab("Number of bald eagles")
+
+count_by_year <- ggplot(eagles, aes(x = year, y = count)) +
+  geom_point() +
+  geom_smooth(se = FALSE) +
+  xlab("Year") +
+  ylab("Bald eagle count")
+
+obs_by_year <- ggplot(eagles, aes(x = year, y = weeks)) +
+  geom_point() +
+  geom_smooth(se = FALSE) +
+  xlab("Year") +
+  ylab("Weeks of observation")
+
+count_dist
+count_by_year
+obs_by_year
+```
+
+
+## Sampling effort
+
+Poisson random variables are often used to represent counts (e.g., number of bald eagles) per unit of time or space (e.g., one year).  But what if observation (sampling) effort (as measured by the number of `weeks` people observed birds) is changing over time?
+
+We cannot directly compare the 2 eagles observed in 1985 to the 7 eagles observed in 2015 when there were only 143 person-hours (0.85 weeks) of observation in 1985 compared with 221 person-hours (1.32 weeks) in 2015. 
+
+We should examine time trends in the *rate* of bald eagles sightings; for example, we will calculate the bald eagle counts per week ($\frac{\textrm{number of bald eagles}}{\textrm{hours of observation}} \cdot (168 \textrm{ hours/week})$).  
+
+But Poisson models must be based on *counts*...
+
+
+## Offsets
+
+One approach is to include a term on the right side of the model called an __offset__, which is the log of the weeks of observation.  
+
+Adjusting the yearly count by observation time is equivalent to adding $log(\textrm{weeks})$ to the right-hand side of the Poisson regression equation---essentially adding a predictor with a fixed coefficient of 1:
+
+\begin{align*} 
+log(\frac{\lambda}{\textrm{weeks}} )= \beta_0 + \beta_1(\textrm{type}) \nonumber \\
+log(\lambda)-log(\textrm{weeks}) = \beta_0 + \beta_1(\textrm{type}) \nonumber \\
+log(\lambda) = \beta_0 + \beta_1(\textrm{type}) + log(\textrm{weeks})
+\end{align*}
+
+Thus, modeling $log(\lambda)$ and adding an offset is equivalent to modeling rates, and coefficients can be interpreted in terms of rates.
+
+
+## Modeling results
+
+We are interested primarily in trends over time in eagle sightings.  We have no control variables other than sampling effort, so we simply fit a model with `year` (centered at 1981) and our offset.
+
+\scriptsize
+```{r}
+#| echo: TRUE
+
+model_eagles <- glm(count ~ year_1981, family = poisson,
+                    offset = log(weeks), data = eagles)
+```
+
+```{r}
+#| echo: FALSE
+#| message: FALSE
+#| comment: '##'
+
+coef(summary(model_eagles))
+cat(" Residual deviance = ", summary(model_eagles)$deviance, " on ",
+    summary(model_eagles)$df.residual, "df", "\n",
+    "Dispersion parameter = ", summary(model_eagles)$dispersion)
+```
+
+\normalsize
+Bald eagle counts are significantly increasing over time (Z = 6.55, p < .001), even after adjusting for observation time.  The average eagle sighting rate per week has grown about 7.9\% per year (since $e^{0.0757}=1.0786$) in Hamilton, Ontario.  
+
+Adjustments for potential overdispersion using either quasi-Poisson or negative binomial regression provide minimal changes to model coefficients and tests.

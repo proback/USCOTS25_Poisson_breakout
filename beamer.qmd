@@ -588,7 +588,7 @@ These results are very similar to the quasi-Poisson model in terms of estimated 
 Check in with your neighbor(s).  What questions do you have at this point?  What can we clarify or discuss more fully?
 
 
-## Second case study: bald eagles
+## Second case study: Bald eagles
 
 ```{r}
 #| include: FALSE
@@ -728,3 +728,189 @@ cat(" Residual deviance = ", summary(model_eagles)$deviance, " on ",
 Bald eagle counts are significantly increasing over time (Z = 6.55, p < .001), even after adjusting for observation time.  The average eagle sighting rate per week has grown about 7.9\% per year (since $e^{0.0757}=1.0786$) in Hamilton, Ontario.  
 
 Adjustments for potential overdispersion using either quasi-Poisson or negative binomial regression provide minimal changes to model coefficients and tests.
+
+
+## Other extensions of the Poisson regression model
+
+-   Zero-inflated models
+-   Hurdle models
+-   Multilevel models
+
+
+## Zero-inflated Poisson models: Weekend drinking
+
+An informal survey of students in an intro stats course included the question, "How many alcoholic drinks did you consume last weekend?".  We wish to identify factors associated with increased drinking.
+
+```{r}
+#| label: fig-zip
+#| fig-cap: |
+#|   Count of drinks consumed last weekend
+#| fig-subcap: 
+#|   - Actual
+#|   - Poisson model
+#| echo: FALSE
+#| message: FALSE
+#| warning: FALSE
+#| layout-ncol: 2
+#| layout-nrow: 1
+#| out-width: 60%
+
+# Read in weekendDrinks data
+zip_data <- read_csv("data/weekendDrinks.csv")  
+
+## Observed data
+obs_table <- tally(group_by(zip_data, drinks))  |>
+  mutate(prop = round(n / sum(n), 3))
+# 47% reported 0 drinks last weekend
+
+g_obs <- obs_table |>
+  ggplot(aes(y = prop, x = drinks)) + 
+    geom_bar(stat = "identity") +
+    labs(x = "Number of drinks", y = "Proportion") +
+    coord_cartesian(ylim = c(0, .5))
+g_obs
+
+## Poisson model
+### lambda = mean number of drinks
+sum1 <- zip_data |> 
+  summarise(lambda = mean(drinks),
+            maxDrinks = max(drinks))
+possible_values <- with(sum1, 0:maxDrinks)
+model_prob <- with(sum1, dpois(possible_values, lambda))
+pois_model <- data.frame(possible_values, model_prob)
+
+g_model <- ggplot(pois_model, aes(y = model_prob,
+                                  x = possible_values)) + 
+  geom_bar(stat = "identity")+
+  labs(x = "Number of drinks", y = "Probability") +
+  coord_cartesian(ylim = c(0, .5))
+g_model
+```
+
+There are more zeros than expected under a Poisson model.
+
+
+## ZIP: Weekend drinking (continued)
+
+\small
+Our zeros are a **mixture** of responses from non-drinkers (who would always report 0) and drinkers who abstained during the past weekend.  Ideally, we'd like to sort out the non-drinkers and drinkers when performing our analysis.
+
+Define $\lambda$ to be the mean number of drinks *among those who drink*, and $\alpha$ to be the proportion of *non-drinkers* ("true zeros").  
+
+Model $\lambda$ and $\alpha$ (or functions of $\lambda$ and $\alpha$) simultaneously using covariates like sex, first-year status, and off-campus residence.  For example:
+
+$log(\lambda)=\beta_0+\beta_1 offcampus + \beta_2 sex$
+
+$log(\alpha / (1-\alpha))=\beta_0+\beta_1 firstyear$
+
+The first part of a ZIP model is a regular Poisson regression model, and the second part is a logistic regression model.
+
+
+## Hurdle models: Going vague
+
+\normalsize
+In a 2018 study, Chapp et al. scraped every issue statement from webpages of candidates for the U.S. House of Representatives, counting the number of issues candidates commented on and scoring the level of ambiguity of each statement.  
+
+Research questions:
+
+-   Which candidates for U.S. House are more likely to have at least one issue page and to offer statements on a greater number of issues?  
+-   How are a candidate's political party, incumbency status, and political beliefs related to their willingness to post stands and ideas on issues?  
+-   How do the demographics and political beliefs of voters in the candidate's district impact a candidate's willingness to engage?  
+-   How does the interplay between candidate profile and voter profile affect a candidate's willingness to comment on issues?
+
+
+## Hurdle: Going vague (continued)
+
+```{r}
+#| label: fig-hurdle
+#| fig-cap: |
+#|   Total issue pages for 2014 US House candidates
+#| echo: FALSE
+#| message: FALSE
+#| warning: FALSE
+#| out-width: 50%
+#| out-height: 30%
+
+ambiguity <- read_csv("data/ambiguity.csv") |>
+  mutate(democrat_fct = ifelse(democrat == 1, "Democrat", "Republican"),
+         incumbent_fct = ifelse(incumbent == 1, "Incumbent", "Challenger"),
+         issue_pages = ifelse(totalIssuePages == 0, 
+                              "No issue pages",
+                              "At least one issue page"))
+
+p.table <- ambiguity |>
+  group_by(totalIssuePages) |>
+  summarise (n = n()) |>
+  mutate(freq = n / sum(n))
+
+ggplot(p.table, aes(x = totalIssuePages, 
+                    xend = totalIssuePages, 
+                    y = 0, 
+                    yend = freq)) +
+  geom_segment() + 
+  labs(y = "Proportion", 
+       x = "Observed total issue pages")
+```
+
+\small
+Once again, there are more zeros than expected under a Poisson model.  But *unlike* ZIP models, it is not natural to consider these zeros to be a mixture.  Candidates decide either to post issue statements or not.  Those who decide to not post any issue statements comprise our zeros, and for those who decide to post issue statements, we can model the number they choose to post.  
+
+Since those who decide to post issue statements "leap over" the zero category, these models are referred to as __hurdle models__.
+
+
+## Hurdle: Going vague (continued)
+
+\small
+Similar to ZIP models, we will define $\lambda$ to be the mean number of drinks *among those who posted at least one issue page*, and $\alpha$ to be the proportion of *candidates who post at least one issue page* ("true non-zeros" or "true hurdlers").  
+
+Then, model $\lambda$ and $\alpha$ (or functions of $\lambda$ and $\alpha$) simultaneously using characteristics of the candidates and their districts:
+
+$log(\lambda)=\beta_0+\beta_1 X_1 + \beta_2 X_2$
+
+$log(\alpha / (1-\alpha))=\beta_0+\beta_1 X_1 + \beta_2 X_3$
+
+Hurdle models focus on modeling *non-zeros*, whereas ZIP models focus on modeling *true zeros*.  This really only affects the interpretation of logistic coefficients.
+
+The count portion of the hurdle model is actually based on a **truncated Poisson** distribution (domain starting at 1) rather than a full Poisson distribution (domain starting at 0).  This does not affect the interpretation of Poisson coefficients.
+
+
+## Multilevel modeling: Going vague
+
+\normalsize
+**Problem:** Even with a hurdle model for number of issue pages, a condition is still violated in the Going Vague example.  Observations are *not independent*!  Some covariates are measured at the candidate level (incumbent, party, ideology), while others are measured at the district level (demographics, ideology of voters).  Candidates from the same district will have the same values for any covariate at the district level.
+
+**Implications:** overstate effective sample size, underestimate standard errors, and overstate significance of covariates
+
+**Solution:** multilevel (hierarchical / mixed effects) modeling!
+
+**Idea:** build a regression model for issue pages at the candidate level, and then build another regression model for coefficients from the first model using covariates at the district level.  Combine into a single composite model.
+
+
+## Pause to Ponder
+
+Check in with your neighbor(s).  What questions do you have at this point?  What can we clarify or discuss more fully?
+
+
+## Preview of materials
+
+[GitHub repo](https://github.com/proback/USCOTS25_Poisson_breakout) for this session, containing:
+
+-   slides for this presentation (including R source code and data)
+-   St. Olaf SDS 316 class folder with class activities for the Poisson regression unit (keys available upon request).
+-   Draft of brand new Chapter 4 for BMLR2e (Roback, Boehm Vock, and Legler; expected Fall 2026)
+
+[Beyond Multiple Linear Regression: Applied Generlized Linear Models and Multilevel Models in R](https://bookdown.org/roback/bookdown-BeyondMLR/) by Roback and Legler (2021).
+
+
+## Pause to Ponder
+
+With your neighbor(s) discuss plans, ideas, questions, and concerns you have about teaching Poisson regression somewhere in your own world.
+
+
+## Thanks!
+
+Please be in touch with any questions, thoughts, feedback, etc.!
+
+Laura Boehm Vock: (boehm@stolaf.edu)
+
+Paul Roback: (roback@stolaf.edu)

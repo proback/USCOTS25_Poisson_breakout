@@ -1,0 +1,97 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+fHH1 <- read_csv("data/philippines.csv") |>
+  mutate(location = as_factor(location),
+         roof = as_factor(roof))
+
+ggplot(fHH1, aes(age, numLT5)) +
+  geom_point() + 
+  geom_smooth(se = FALSE)
+
+textdat <- fHH1 |> 
+  group_by(agebin) |>
+  summarize(mean = round(mean(numLT5), 2), 
+            var = round(var(numLT5), 2) ) |>
+  mutate(Mean = str_c("Mean: ", mean, "\nVar: ", var))
+
+
+fHH1 <- fHH1 |> 
+  mutate(agebin = cut(age, c(0, 30, 40, 50, 60, 70, Inf)),
+         agebin = fct_recode(agebin, 
+                             '18 - 30'= "(0,30]",
+                            '31 - 40' = "(30,40]",
+                            '41 - 50' = "(40,50]",
+                            '51 - 60' = "(50,60]",
+                            '61 - 70' = "(60,70]",
+                            '71+' = "(70,Inf]"))
+
+
+fHH1 |>
+ggplot(aes(numLT5)) + 
+  geom_histogram() + 
+  facet_wrap(~agebin) + 
+  geom_text(data = textdat, aes(x = 2.5, y = 200, label = Mean)) +
+  labs(x = "Number of children less than 5 by head of household age", y = "Count of households")
+
+
+```
+
+
+```{r}
+fHH1 |> 
+  group_by(agebin) |>
+  summarize(mean = mean(numLT5), 
+            var = var(numLT5)) |> 
+  ggplot(aes(mean, var)) + 
+  geom_point() + 
+  geom_abline(yintercept = 0, slope = 1)
+```
+
+```{r}
+ggplot(fHH1, aes(age, numLT5)) +
+  geom_jitter() + 
+  geom_smooth(se = FALSE) +
+  facet_wrap(~location)
+
+ggplot(fHH1, aes(age, numLT5, color = location)) +
+  geom_jitter() + 
+  geom_smooth(se = FALSE) + 
+  facet_wrap(~roof)
+
+ggplot(fHH1, aes(location, fill = roof)) + 
+  geom_bar()
+```
+
+```{r}
+
+lt5_age <- glm(numLT5 ~ age, data = fHH1, family = poisson)
+summary(lt5_age)
+exp(coef(lt5_age))
+
+
+lt5_roof <- glm(numLT5 ~ roof, data = fHH1, family =poisson)
+summary(lt5_roof)
+
+lt5_location <-glm(numLT5 ~ location, data = fHH1, family =poisson)
+summary(lt5_location)
+```
+
+
+
+```{r}
+
+total_age <- glm(total ~ age + I(age^2), data = fHH1, family = poisson)
+
+total_roof <- glm(total ~ roof, data = fHH1, family =poisson)
+
+total_location <-glm(total ~ location, data = fHH1, family =poisson)
+
+
+AIC(total_age, total_roof, total_location)
+```
+

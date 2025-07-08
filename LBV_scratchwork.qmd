@@ -13,11 +13,6 @@ ggplot(fHH1, aes(age, numLT5)) +
   geom_point() + 
   geom_smooth(se = FALSE)
 
-textdat <- fHH1 |> 
-  group_by(agebin) |>
-  summarize(mean = round(mean(numLT5), 2), 
-            var = round(var(numLT5), 2) ) |>
-  mutate(Mean = str_c("Mean: ", mean, "\nVar: ", var))
 
 
 fHH1 <- fHH1 |> 
@@ -30,15 +25,79 @@ fHH1 <- fHH1 |>
                             '61 - 70' = "(60,70]",
                             '71+' = "(70,Inf]"))
 
+textdat <- fHH1 |> 
+  group_by(agebin) |>
+  summarize(mean = round(mean(numLT5), 2), 
+            var = round(var(numLT5), 2) ) |>
+  mutate(Mean = str_c("Mean: ", mean, "\nVar: ", var))
 
 fHH1 |>
-ggplot(aes(numLT5)) + 
-  geom_histogram() + 
-  facet_wrap(~agebin) + 
-  geom_text(data = textdat, aes(x = 2.5, y = 200, label = Mean)) +
-  labs(x = "Number of children less than 5 by head of household age", y = "Count of households")
+  group_by(agebin) |>
+  count(numLT5) |>
+  mutate(prop = n/sum(n),
+         mean = sum(prop*numLT5),
+         pois = dpois(numLT5, lambda = mean)) |>
+ggplot(aes(numLT5)) +
+  geom_col(aes(y = prop), width = 0.5) +
+  facet_wrap(~agebin) +
+  geom_text(data = textdat, aes(x = 3, y = .75, label = Mean)) +
+  labs(x = "Number of children less than 5 by head of household age", y = "Proportion of households")  +
+  geom_linerange(ymin = 0, aes(ymax = pois), color = "red")
+
+```
 
 
+```{r}
+
+tibble(pred = predict(glm(numLT5 ~ age, data= fHH1, family = poisson), 
+        newdata = data.frame(age = c(25, 35, 45, 55, 65, 75))) , 
+       age = c(25, 35, 45, 55, 65, 75)) |>
+  mutate(lambda = exp(pred))
+
+# Now make Poisson regression picture# poisson()Now make Poisson regression picture
+set.seed(0)
+dat <- data.frame(x = (x = runif(1000, 0, 20)),
+                  y = rpois(1000, exp(.1 * x)))
+
+## breaks: where you want to compute densities
+breaks <- seq(2, max(dat$x), len = 5)
+dat$section <- cut(dat$x, breaks)
+
+## Get the residuals
+dat$res <- dat$y - .1 * dat$x
+
+## Compute densities for each section, flip the axes, add means
+## of sections.  Note: densities need to be scaled in relation 
+## to section size
+dens <- do.call(rbind, lapply(split(dat, dat$section), function(x) {
+  d <- density(x$res, n = 500)
+  res <- data.frame(x = max(x$x)- d$y * 10, y = d$x + mean(x$y))
+  res <- res[order(res$y), ]
+  ## Get some data for poisson lines as well
+  xs <- seq(min(x$y), max(x$y), len = 500)
+  res <- rbind(res, 
+               data.frame(y = xs,
+                          x = max(x$x) - 
+                            10*dpois(round(xs), exp(.1*max(x$x)))))
+  res$type <- rep(c("empirical", "poisson"), each = 500)
+  res
+}))
+dens$section <- rep(levels(dat$section), each = 1000)
+
+pois_assume <- ggplot(dat, aes(x, jitter(y, .25))) +
+  geom_point(size = 0.1) +
+  geom_smooth(method = "loess", fill = NA, lwd = 2) +
+  geom_path(data=dens[dens$type=="poisson",], 
+            aes(x, y, group = section), 
+            color = "salmon", 
+            lwd = 1.1) +
+  theme_bw() + 
+  ylab("y") + 
+  xlab("x") +
+  geom_vline(xintercept = breaks, lty = 2)
+
+ols_assume
+pois_assume
 ```
 
 

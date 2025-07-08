@@ -63,6 +63,7 @@ fHH1 <- read_csv("data/philippines.csv") |>
 
 -   International agencies often use household size to determine the magnitude of the household needs
 -   Want to discern factors associated with larger households
+-   We will model both the total household size and number of children under 5
 -   Data is subset from 2015 Philippine Statistics Authority's Family Income and Expenditure Survey (FIES)
 -   Primary response is a count, which can make linear regression problematic
 
@@ -92,7 +93,7 @@ knitr::include_graphics("data/map_of_philippines.jpg")
 ::::
 
 
-## Poisson distribution
+## What is the Poisson *distribution*?
 
 $$
 P(Y_i=y_i) = \frac{e^{-\lambda}\lambda^{y_i}}{{y_i}!} \quad \textrm{for} \quad y_i = 0, 1, \ldots, \infty,
@@ -139,7 +140,7 @@ Pois3
 ```
 
 
-## Poisson regression model
+## What is a Poisson *regression model*?
 
 \begin{equation*}
 log(\lambda_i)=\beta_0+\beta_1 x_i
@@ -283,15 +284,15 @@ $\mu = \beta_0 + X\beta_1$ | $log(\lambda) = \beta_0 + X\beta_1$
 **E**qual variance of all residuals | Variance increases with E(Y) (Var(Y) = E(Y))
 
 
-## Exploratory data analysis
+## Exploratory data analysis 1: Number under 5 in household
 
 ```{r}
-#| label: fig-eda
+#| label: fig-eda-lt5
 #| fig-cap: |
 #|   EDA: selected plots 
 #| fig-subcap: 
-#|   - Distribution of household size across all 5 Philippine regions.
-#|   - The log of the mean household sizes by age of the head of household, with loess smoother.
+#|   - Distribution of number of children under 5 in households across all 5 Philippine regions.
+#|   - The log of the mean number of children under 5 by age of the head of household, with loess smoother.
 #| echo: FALSE
 #| message: FALSE
 #| warning: FALSE
@@ -299,7 +300,7 @@ $\mu = \beta_0 + X\beta_1$ | $log(\lambda) = \beta_0 + X\beta_1$
 #| layout-nrow: 1
 #| out-width: 70%
 
-total_dist <- ggplot(fHH1, aes(total)) + 
+LT5_dist <- ggplot(fHH1, aes(numLT5)) + 
   geom_histogram(binwidth = .25, 
                  color = "black", 
                  fill = "white") + 
@@ -309,29 +310,29 @@ total_dist <- ggplot(fHH1, aes(total)) +
 ## Checking linearity assumption: Empirical log of the means plot
 sumStats <- fHH1 |> 
   group_by(age) |> 
-  summarise(mntotal = mean(total),
-            logmntotal = log(mntotal), 
+  summarise(mnLT5 = mean(numLT5),
+            logmnLT5 = log(mnLT5), 
             n=n())
 
-age_vs_total <- ggplot(sumStats, aes(x=age, y=logmntotal)) +
+age_vs_LT5 <- ggplot(sumStats, aes(x=age, y=logmnLT5)) +
   geom_point()+
-  geom_smooth(method = "loess", linewidth = 1.5)+
+  #geom_smooth(method = "loess", linewidth = 1.5)+
   xlab("Age of head of the household") +
-  ylab("Log of the empirical mean number in the house") 
+  ylab("Log of the empirical mean number of children less than 5") 
 
-total_dist
-age_vs_total
+LT5_dist
+age_vs_LT5
 ```
 
 
 ## Initial model
 
 \begin{equation*}
-log(\hat{\lambda}) = 1.55 - 0.0047 \textrm{age}
+log(\hat{\lambda}) = 0.525 - 0.029 \textrm{age}
 \end{equation*}
 
 ```{r}
-modela <- glm(total ~ age, family = poisson, data = fHH1)
+modelaLT5 <- glm(numLT5 ~ age, family = poisson, data = fHH1)
 ```
 
 \scriptsize
@@ -340,7 +341,7 @@ modela <- glm(total ~ age, family = poisson, data = fHH1)
 #| message: FALSE
 #| comment: '##'
 
-coef(summary(modela))
+coef(summary(modelaLT5))
 ```
 
 \normalsize
@@ -370,9 +371,9 @@ These results suggest that by exponentiating the coefficient on age we obtain th
 
 ## Interpreting model coefficients (continued)
 
-In this case, the mean number in the house changes by a factor of $e^{-0.0047}=0.995$ or decreases by 0.5\% (since $1-.995 = .005$) with each additional year older the household head is; 
+In this case, the mean number of children under 5 changes by a factor of $e^{-0.029}=0.971$ or decreases by 2.9\% (since $1-.971 = .029$) with each additional year older the household head is; 
 
-Or, we predict a 0.47\% *increase* in mean household size for a 1-year *decrease* in age of the household head (since $1/.995=1.0047$). 
+Or, we predict a 3.0\% *increase* in mean number of children less than 5 for a 1-year *decrease* in age of the household head (since $1/.971=1.0298$). 
 
 The quantity on the left-hand side of @eq-rateRatio is referred to as a __rate ratio__  or __relative risk__, \index{relative risk (rate ratio)} and it represents a percent change in the response for a unit change in X.  
 
@@ -391,6 +392,57 @@ Most significant ideas from multiple linear regression are reinforced by Poisson
 -   checking violations of model conditions
 -   maximum likelihood estimates (equals least squares in linear regr)
 
+## Exploratory data analysis 2: Total in household
+
+```{r}
+#| label: fig-eda-total
+#| fig-cap: |
+#|   EDA: selected plots 
+#| fig-subcap: 
+#|   - Distribution of household size by Philippine regions.
+#|   - The log of the mean household sizes by age of the head of household, with loess smoother.
+#| echo: FALSE
+#| message: FALSE
+#| warning: FALSE
+#| layout-ncol: 2
+#| layout-nrow: 1
+#| out-width: 70%
+
+textdat <- fHH1 |> 
+  group_by(location) |>
+  summarize(mean = round(mean(total), 2), 
+            var = round(var(total), 2) ) |>
+  mutate(Mean = str_c("Mean: ", mean, "\nVar: ", var))
+
+
+total_dist <- ggplot(fHH1, aes(total)) + 
+  geom_histogram(binwidth = .25, 
+                 color = "black", 
+                 fill = "white") + 
+  xlab("Number in the house excluding head of household") +
+  ylab("Count of households") +
+  facet_wrap(~location) +
+  geom_text(data = textdat, aes(x = 10, y = 90, label = Mean))
+ 
+
+## Checking linearity assumption: Empirical log of the means plot
+sumStats <- fHH1 |> 
+  group_by(age) |> 
+  summarise(mntotal = mean(total),
+            logmntotal = log(mntotal), 
+            n=n())
+
+age_vs_total <- ggplot(sumStats, aes(x=age, y=logmntotal)) +
+  geom_point()+
+  geom_smooth(method = "loess", linewidth = 1.5)+
+  xlab("Age of head of the household") +
+  ylab("Log of the empirical mean number in the house") 
+
+total_dist
+age_vs_total
+```
+
+What does the graph on the right tell us about the relationship of $\lambda$ and age?
 
 ## Potential final model
 
@@ -449,6 +501,27 @@ did_print
 ```
 
 Adding the four terms corresponding to location to the quadratic model with age produces a statistically significant improvement $(\chi^2=13.144, df = 4, p=0.0106)$, so there is significant evidence that mean household size differs by location, after controlling for age of the head of household. 
+
+## Comparing non-nested models
+
+```{r}
+model_roof <- glm(total ~ roof, family = poisson, data = fHH1)
+model_location <- glm(total ~location, family = poisson, data = fHH1)
+```
+
+Which is the single best predictor? quadratic age, roof type, or location/region? 
+
+Use Akaike Information Criterion (AIC) to compare
+- lower values are better
+- differences of 10 are "big"
+- measures model fit while accounting for complexity, analog to adjusted $R^2$
+
+```{r}
+#| message: FALSE
+
+AIC(modela2, model_roof, model_location)
+```
+
 
 
 ## Lack of fit!
@@ -945,3 +1018,25 @@ Please be in touch with any questions, thoughts, feedback, etc.!
 Laura Boehm Vock: (boehm@stolaf.edu)
 
 Paul Roback: (roback@stolaf.edu)
+
+
+## Bonus material: Interpreting ZIP
+
+```{r}
+zip_data <- zip_data|>
+  mutate(offcampus = ifelse(dorm == "off campus", 1, 0),
+         firstyear = ifelse(dorm %in% c("kildahl", "kittlesby", "mohn"), 1, 0))
+
+drinks.zip <- zeroinfl(drinks ~  offcampus + sex | 
+                     firstyear,
+                   data=zip_data)
+```
+
+```{r}
+
+summary(drinks.zip)$coef
+```
+
+$e^{0.415} = 1.51$: Students who drink consume 51% more drinks if living off campus, after accounting for sex.
+
+$e^{1.136} = 3.11$: First year students have 3.11 times greater odds of *not drinking* compared to older students.

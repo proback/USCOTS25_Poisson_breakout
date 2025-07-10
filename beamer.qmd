@@ -780,16 +780,13 @@ We let $\lambda_i$ be the expected number of eagles in year $i$ per with $\textr
 
 Then $\lambda_i/\textrm{weeks}_i$ is the number of eagles expected in a week!
 
-O
-Adjusting the yearly count by observation time is equivalent to adding $log(\textrm{weeks})$ to the right-hand side of the Poisson regression equation---essentially adding a predictor with a fixed coefficient of 1:
+Adjusting the yearly count by observation time is equivalent to adding $log(\textrm{weeks})$ to the right-hand side of the Poisson regression equation---essentially adding a predictor with a fixed coefficient of 1, called an __offset__: 
 
 \begin{align*} 
 log(\frac{\lambda_i}{\textrm{weeks}_i} )= \beta_0 + \beta_1x_i \nonumber \\
 log(\lambda_i)-log(\textrm{weeks}_i) = \beta_0 + \beta_1x_i \nonumber \\
 log(\lambda_i) = \beta_0 + \beta_1x_i + log(\textrm{weeks}_i)
 \end{align*}
-
-This new term on the right side of the model called an __offset__, which is the log of the weeks of observation.  
 
 Thus, modeling $log(\lambda)$ and adding an offset is equivalent to modeling **rates**, and coefficients can be interpreted in terms of rates.
 

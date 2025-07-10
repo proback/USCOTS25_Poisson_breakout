@@ -730,7 +730,7 @@ Credit: © Ron Niebrugge/wildnatureimages
 #| fig-cap: |
 #|   EDA: selected plots 
 #| fig-subcap: 
-#|   - Histogram of number of bald eagle sitings by year.
+#|   - Histogram of number of bald eagle sightings by year.
 #|   - Bald eagle counts vs. year
 #|   - Hours of observation vs. year
 #| echo: FALSE
@@ -764,26 +764,32 @@ obs_by_year
 
 ## Sampling effort
 
-Poisson random variables are often used to represent counts (e.g., number of bald eagles) per unit of time or space (e.g., one year).  But what if observation (sampling) effort (as measured by the number of `weeks` people observed birds) is changing over time?
+Poisson random variables are often used to represent counts (e.g., number of bald eagles) *per unit of time or space* (previously, number of people in one household).  
 
-We cannot directly compare the 2 eagles observed in 1985 to the 7 eagles observed in 2015 when there were only 143 person-hours (0.85 weeks) of observation in 1985 compared with 221 person-hours (1.32 weeks) in 2015. 
+But what if observation (sampling) effort (as measured by the number of `weeks` people observed birds) is changing over time?
+
+We cannot directly compare the 2 eagles observed in 1985 to the 7 eagles observed in 2015 when there were only 143 person-hours (0.85 person-weeks) of observation in 1985 compared with 221 person-hours (1.32 person-weeks) in 2015. 
 
 We should examine time trends in the *rate* of bald eagles sightings; for example, we will calculate the bald eagle counts per week ($\frac{\textrm{number of bald eagles}}{\textrm{hours of observation}} \cdot (168 \textrm{ hours/week})$).  
 
-But Poisson models must be based on *counts*...
 
 
 ## Offsets
 
-One approach is to include a term on the right side of the model called an __offset__, which is the log of the weeks of observation.  
+We let $\lambda_i$ be the expected number of eagles in year $i$ per with $\textrm{weeks}_i$ weeks observed in year $i$. 
 
+Then $\lambda_i/\textrm{weeks}_i$ is the number of eagles expected in a week!
+
+O
 Adjusting the yearly count by observation time is equivalent to adding $log(\textrm{weeks})$ to the right-hand side of the Poisson regression equation---essentially adding a predictor with a fixed coefficient of 1:
 
 \begin{align*} 
-log(\frac{\lambda}{\textrm{weeks}} )= \beta_0 + \beta_1(\textrm{type}) \nonumber \\
-log(\lambda)-log(\textrm{weeks}) = \beta_0 + \beta_1(\textrm{type}) \nonumber \\
-log(\lambda) = \beta_0 + \beta_1(\textrm{type}) + log(\textrm{weeks})
+log(\frac{\lambda_i}{\textrm{weeks}_i} )= \beta_0 + \beta_1x_i \nonumber \\
+log(\lambda_i)-log(\textrm{weeks}_i) = \beta_0 + \beta_1x_i \nonumber \\
+log(\lambda_i) = \beta_0 + \beta_1x_i + log(\textrm{weeks}_i)
 \end{align*}
+
+This new term on the right side of the model called an __offset__, which is the log of the weeks of observation.  
 
 Thus, modeling $log(\lambda)$ and adding an offset is equivalent to modeling **rates**, and coefficients can be interpreted in terms of rates.
 
@@ -792,13 +798,13 @@ Thus, modeling $log(\lambda)$ and adding an offset is equivalent to modeling **r
 
 Ordinary Poisson: 
 
-$$log(\mbox{COUNT}) = \beta_0 + \beta_1 X$$
+$$log(\mbox{COUNT}) = log(\lambda) =\beta_0 + \beta_1 X$$
 
 The average *number of eagles* has increased by ...% per year. 
 
 Poisson with Offset: 
 
-$$log(\mbox{RATE}) = \beta_0 + \beta_1 X$$
+$$log(\mbox{RATE}) = log(\lambda/t) = \beta_0 + \beta_1 X$$
 The average *number of eagles per week* has increase by ...% per year. 
 
 

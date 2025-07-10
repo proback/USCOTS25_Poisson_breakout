@@ -35,10 +35,10 @@ knitr::include_graphics("qr-code.png")
 
 ## Poisson regression at St. Olaf
 
--   02-04: Not taught.  Statistics concentration required Prob Theory and Math Stat plus 2 electives.
--   04-18: Taught as part of Advanced Statistical Modeling (Stat 316).  Concentration required Statistical Modeling (Stat 272) and 316 plus 2 electives.
--   18-24: Still taught in Stat 316.  Concentration renamed "Statistics and Data Science" and required 272 and Intro to Data Science plus 2 electives.  Stat 316 now counts as an upper level elective.
--   24-current: Still taught in Stat 316.  Concentration became a major.  Stat 316 counts as a "Level 3 Stats Depth" elective course.
+-   2002-04: Not taught.  Statistics concentration required Prob Theory and Math Stat plus 2 electives.
+-   2004-18: Taught as part of Advanced Statistical Modeling (Stat 316).  Concentration required Statistical Modeling (Stat 272) and 316 plus 2 electives.
+-   2018-24: Still taught in Stat 316.  Concentration renamed "Statistics and Data Science" and required 272 and Intro to Data Science plus 2 electives.  Stat 316 now counts as an upper level elective.
+-   2024-now: Still taught in Stat 316.  Concentration became a major.  Stat 316 counts as a "Level 3 Stats Depth" elective course.
 
 
 ## Advanced Statistical Modeling at St. Olaf
@@ -47,6 +47,9 @@ knitr::include_graphics("qr-code.png")
 -   Prerequsites: Intro Stats and Stat Modeling (nothing else -- calculus, linear algebra, computing, ...)
 -   Applied focus using R
 -   Uses [Beyond Multiple Linear Regression: Applied Generalized Linear Models and Multilevel Models in R](https://bookdown.org/roback/bookdown-BeyondMLR/) by Roback and Legler.  Second edition by Roback, Boehm Vock, and Legler expected by Fall 2026.
+
+
+## Initial survey results
 
 
 ## First case study: Philippine households
@@ -272,6 +275,7 @@ With your neighbor(s), compare the Poisson regression conditions to the usual LI
 2. In the LLSR model, the variation in $Y$ at each level of X, $\sigma^2$, is the same. For Poisson regression the responses at each level of X become more variable with increasing means, where variance=mean (Condition 3). 
 3. In the case of LLSR, the mean responses for each level of X, $\mu_{Y|X}$, fall on a line. In the case of the Poisson model, the mean values of $Y$ at each level of $X$, $\lambda_{Y|X}$, fall on a curve, not a line, although the logs of the means should follow a line (Condition 4).
 
+
 ## Side by side comparison
 
 Linear Regression | Poisson Regression
@@ -304,7 +308,7 @@ LT5_dist <- ggplot(fHH1, aes(numLT5)) +
   geom_histogram(binwidth = .25, 
                  color = "black", 
                  fill = "white") + 
-  xlab("Number in the house excluding head of household") +
+  xlab("Number in the household excluding the head") +
   ylab("Count of households")
 
 ## Checking linearity assumption: Empirical log of the means plot
@@ -315,13 +319,15 @@ sumStats <- fHH1 |>
             n=n())
 
 age_vs_LT5 <- ggplot(sumStats, aes(x=age, y=logmnLT5)) +
-  geom_point()+
-  #geom_smooth(method = "loess", linewidth = 1.5)+
+  geom_point() +
+  geom_smooth(method = "lm")+
   xlab("Age of head of the household") +
-  ylab("Log of the empirical mean number of children less than 5") 
+  ylab("Log mean # of children < 5") 
 
-LT5_dist
-age_vs_LT5
+LT5_dist + theme(axis.title.x = element_text(size = 30, face = "bold"),
+                 axis.title.y = element_text(size = 30, face = "bold"))
+age_vs_LT5 + theme(axis.title.x = element_text(size = 30, face = "bold"),
+                 axis.title.y = element_text(size = 30, face = "bold"))
 ```
 
 
@@ -345,7 +351,7 @@ coef(summary(modelaLT5))
 ```
 
 \normalsize
-How can the coefficient estimates be interpreted? 
+**Pause to Ponder:** How would you want your students to interpret coefficient estimates above? 
 
 
 ## Interpreting model coefficients
@@ -391,6 +397,7 @@ Most significant ideas from multiple linear regression are reinforced by Poisson
 -   control for / adjusting for / holding constant
 -   checking violations of model conditions
 -   maximum likelihood estimates (equals least squares in linear regr)
+
 
 ## Exploratory data analysis 2: Total in household
 
@@ -443,6 +450,7 @@ age_vs_total
 ```
 
 What does the graph on the right tell us about the relationship of $\lambda$ and age?
+
 
 ## Potential final model
 
@@ -502,6 +510,7 @@ did_print
 
 Adding the four terms corresponding to location to the quadratic model with age produces a statistically significant improvement $(\chi^2=13.144, df = 4, p=0.0106)$, so there is significant evidence that mean household size differs by location, after controlling for age of the head of household. 
 
+
 ## Comparing non-nested models
 
 ```{r}
@@ -512,16 +521,16 @@ model_location <- glm(total ~location, family = poisson, data = fHH1)
 Which is the single best predictor? quadratic age, roof type, or location/region? 
 
 Use Akaike Information Criterion (AIC) to compare
-- lower values are better
-- differences of 10 are "big"
-- measures model fit while accounting for complexity, analog to adjusted $R^2$
+
+-   lower values are better
+-   differences of 10 are "big"
+-   measures model fit while accounting for complexity, analog to adjusted $R^2$
 
 ```{r}
 #| message: FALSE
 
 AIC(modela2, model_roof, model_location)
 ```
-
 
 
 ## Lack of fit!
@@ -539,50 +548,37 @@ There are several reasons why **lack-of-fit** \index{lack-of-fit} may be observe
 
 ## Overdispersion
 
-Often in Poisson models the variances in the response are larger than the corresponding means at different levels of the predictors.  The response is then considered to be **overdispersed**  
+Often in Poisson models the variances in the response are larger than the corresponding means at different levels of the predictors.  The response is then considered to be **overdispersed**.
+
+Recall that we observed this in our EDA plot by region:
 
 ```{r}
-#| label: fig-mean-var2
+#| label: fig-lt5-by-region
 #| fig-cap: |
-#|   Mean and variance of predicted household sizes.  
-#| fig-subcap: 
-#|   - Linear fit
-#|   - Loess smoother
+#|   Distribution of household size by Philippine regions.
 #| echo: FALSE
 #| message: FALSE
 #| warning: FALSE
-#| layout-ncol: 2
-#| layout-nrow: 1
 #| out-width: 70%
 
-final_qp <- fHH1 |> 
-  mutate(pred = predict(modela2L), 
-         grouping = cut_number(pred, 30)) |>
-  group_by(grouping) |>
-  summarize(meantotal = mean(total), 
-            vartotal = var(total)) |>
-  ggplot(aes(x = meantotal, y = vartotal)) +
-    geom_point() + 
-    geom_smooth(method = "lm") + 
-    geom_abline(slope = 1, intercept = 0) +
-    labs(x = "Mean household size",
-         y = "Variance in household size")
+textdat <- fHH1 |> 
+  group_by(location) |>
+  summarize(mean = round(mean(total), 2), 
+            var = round(var(total), 2) ) |>
+  mutate(Mean = str_c("Mean: ", mean, "\nVar: ", var))
 
-final_nb <- fHH1 |> 
-  mutate(pred = predict(modela2L), 
-         grouping = cut_number(pred, 30)) |>
-  group_by(grouping) |>
-  summarize(meantotal = mean(total), 
-            vartotal = var(total)) |>
-  ggplot(aes(x = meantotal, y = vartotal)) +
-    geom_point() + 
-    geom_smooth(span = 2) + 
-    geom_abline(slope = 1, intercept = 0) +
-    labs(x = "Mean household size",
-         y = "Variance in household size")
 
-final_qp
-final_nb
+total_dist <- ggplot(fHH1, aes(total)) + 
+  geom_histogram(binwidth = .25, 
+                 color = "black", 
+                 fill = "white") + 
+  xlab("Number in the house excluding head of household") +
+  ylab("Count of households") +
+  facet_wrap(~location) +
+  geom_text(data = textdat, aes(x = 10, y = 90, label = Mean, size = 30))
+
+total_dist + theme(axis.title.x = element_text(size = 18, face = "bold"),
+                   axis.title.y = element_text(size = 18, face = "bold"))
 ```
 
 
@@ -659,6 +655,58 @@ did_print
 
 \normalsize
 Here, after adjusting for overdispersion, we find that there is *not* statistically significant evidence at the 0.05 level ($F=2.32, p=.055$) that mean household size differs among regions after adjusting for age.  
+
+
+## Alternative methods for modeling overdispersion
+
+Diagnostic plot for overdisperion: plot mean vs. variance for groups of households based on predicted size
+
+-   linear with slope > 1 => quasi-Poisson
+-   quadratic with incr. slope => negative binomial
+
+```{r}
+#| label: fig-mean-var2
+#| fig-cap: |
+#|   Mean and variance of predicted household sizes.  
+#| fig-subcap: 
+#|   - Linear fit
+#|   - Loess smoother
+#| echo: FALSE
+#| message: FALSE
+#| warning: FALSE
+#| layout-ncol: 2
+#| layout-nrow: 1
+#| out-width: 70%
+
+final_qp <- fHH1 |> 
+  mutate(pred = predict(modela2L), 
+         grouping = cut_number(pred, 30)) |>
+  group_by(grouping) |>
+  summarize(meantotal = mean(total), 
+            vartotal = var(total)) |>
+  ggplot(aes(x = meantotal, y = vartotal)) +
+    geom_point() + 
+    geom_smooth(method = "lm") + 
+    geom_abline(slope = 1, intercept = 0) +
+    labs(x = "Mean household size",
+         y = "Variance in household size")
+
+final_nb <- fHH1 |> 
+  mutate(pred = predict(modela2L), 
+         grouping = cut_number(pred, 30)) |>
+  group_by(grouping) |>
+  summarize(meantotal = mean(total), 
+            vartotal = var(total)) |>
+  ggplot(aes(x = meantotal, y = vartotal)) +
+    geom_point() + 
+    geom_smooth(span = 2) + 
+    geom_abline(slope = 1, intercept = 0) +
+    labs(x = "Mean household size",
+         y = "Variance in household size")
+
+final_qp
+final_nb
+```
 
 
 ## Negative Binomial models
@@ -773,7 +821,6 @@ We cannot directly compare the 2 eagles observed in 1985 to the 7 eagles observe
 We should examine time trends in the *rate* of bald eagles sightings; for example, we will calculate the bald eagle counts per week ($\frac{\textrm{number of bald eagles}}{\textrm{hours of observation}} \cdot (168 \textrm{ hours/week})$).  
 
 
-
 ## Offsets
 
 We let $\lambda_i$ be the expected number of eagles in year $i$ per with $\textrm{weeks}_i$ weeks observed in year $i$. 
@@ -803,9 +850,6 @@ Poisson with Offset:
 
 $$log(\mbox{RATE}) = log(\lambda/t) = \beta_0 + \beta_1 X$$
 The average *number of eagles per week* has increase by ...% per year. 
-
-
-
 
 
 ## Modeling results
@@ -995,7 +1039,7 @@ The count portion of the hurdle model is actually based on a **truncated Poisson
 
 ## Pause to Ponder
 
-Check in with your neighbor(s).  What questions do you have at this point?  What can we clarify or discuss more fully?
+With your neighbor(s) discuss plans, ideas, questions, and concerns you have about teaching Poisson regression somewhere in your own world.
 
 
 ## Preview of materials
@@ -1007,11 +1051,6 @@ Check in with your neighbor(s).  What questions do you have at this point?  What
 -   Draft of brand new Chapter 4 for BMLR2e (Roback, Boehm Vock, and Legler; expected Fall 2026)
 
 [Beyond Multiple Linear Regression: Applied Generlized Linear Models and Multilevel Models in R](https://bookdown.org/roback/bookdown-BeyondMLR/) by Roback and Legler (2021).
-
-
-## Pause to Ponder
-
-With your neighbor(s) discuss plans, ideas, questions, and concerns you have about teaching Poisson regression somewhere in your own world.
 
 
 ## Thanks!
@@ -1043,3 +1082,30 @@ summary(drinks.zip)$coef
 $e^{0.415} = 1.51$: Students who drink consume 51% more drinks if living off campus, after accounting for sex.
 
 $e^{1.136} = 3.11$: First year students have 3.11 times greater odds of *not drinking* compared to older students.
+
+
+## Bonus material: Interpreting hurdle models
+
+```{r}
+#| include: FALSE
+
+hurdle_model <- hurdle(totalIssuePages ~ democrat + incumbent + 
+    demHeterogeneity + mismatch + attHeterogeneity + distLean + 
+    ideology + ideology:democrat | democrat + incumbent +
+    demHeterogeneity + mismatch + attHeterogeneity + distLean + 
+    ideology + ideology:democrat, 
+  data = ambiguity, 
+  dist="poisson", 
+  zero="binomial")
+
+summary(hurdle_model)$coef
+```
+
+\small
+**incumbent:** $e^{-1.2085}=0.299$ and $1/e^{-1.2085}=3.35$.  Thus, the odds a challenger posts at least one issue page are 3.35 times greater than the odds an incumbent posts at least one issue page, holding all else constant.
+
+**demHeterogeneity:** $e^{-1.173}=0.309$ and $1/e^{-1.173}=3.23$.  Thus, among candidates who choose to post at least one issue page, the mean number of issue pages posted are 3.23 times greater with each one unit decrease in demographic heterogeneity score, holding all else constant.
+
+**ideology:democrat:** $1/e^{-0.490}=1.632$ and $1/e^{-0.490+0.222}=1.307$.  Thus, for each 1 unit decrease in ideology (more liberal), the mean number of issue pages (for candidates with at least one issue page) increases by 63.2\% for democrats but only 30.7\% for republicans.  
+
+Overall candidates are disincentivized to take public stances on issues if they are an incumbent, if their constituents have a wide ranges of backgrounds, and if their beliefs are less aligned with their constituents.

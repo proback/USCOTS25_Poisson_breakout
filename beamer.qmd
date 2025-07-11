@@ -263,17 +263,9 @@ ols_assume
 pois_assume
 ```
 
-
-## Pause to Ponder
+\textbf{Pause to Ponder}
 
 With your neighbor(s), compare the Poisson regression conditions to the usual LINE conditions in linear regression.  List similarities and differences.  What implications might the differences have for modeling and checking conditions?
-
-
-## Differences with linear regression (LLSR)
-
-1. For each level of X, the responses follow a Poisson distribution (Condition 1). For Poisson regression, small values of $\lambda$ are associated with a distribution that is noticeably skewed with lots of small values and only a few larger ones. As $\lambda$ increases the distribution of the responses begins to look more and more like a normal distribution.
-2. In the LLSR model, the variation in $Y$ at each level of X, $\sigma^2$, is the same. For Poisson regression the responses at each level of X become more variable with increasing means, where variance=mean (Condition 3). 
-3. In the case of LLSR, the mean responses for each level of X, $\mu_{Y|X}$, fall on a line. In the case of the Poisson model, the mean values of $Y$ at each level of $X$, $\lambda_{Y|X}$, fall on a curve, not a line, although the logs of the means should follow a line (Condition 4).
 
 
 ## Side by side comparison
@@ -445,11 +437,18 @@ age_vs_total <- ggplot(sumStats, aes(x=age, y=logmntotal)) +
   xlab("Age of head of the household") +
   ylab("Log of the empirical mean number in the house") 
 
-total_dist
-age_vs_total
+total_dist + 
+  theme(axis.title.x = element_text(size = 30, face = "bold"),
+                 axis.title.y = element_text(size = 30, face = "bold"))
+
+age_vs_total+ 
+  theme(axis.title.x = element_text(size = 30, face = "bold"),
+                 axis.title.y = element_text(size = 30, face = "bold"))
 ```
 
-What does the graph on the right tell us about the relationship of $\lambda$ and age?
+\textbf{Pause to Ponder}
+
+How would the plots above inform your modeling?
 
 
 ## Potential final model
@@ -474,9 +473,9 @@ coef(summary(modela2L))
 ```
 
 \small
-For example, $\hat{\beta}_6=-0.0194$ indicates that, after controlling for the age of the head of household, the log mean household size is 0.0194 lower for households in the Davao Region than for households in the reference location of Central Luzon. 
+For example, $\hat{\beta}_5= 0.112$ indicates that, after controlling for the age of the head of household, the log mean household size is 0.112 higher for households in the Visayas Region than for households in the reference location of Central Luzon. 
 
-In more interpretable terms, mean household size is $e^{-0.0194}=0.98$ times "higher" (i.e., 2\% lower) in the Davao Region than in Central Luzon, when holding age constant.  
+In more interpretable terms, mean household size is $e^{0.112}=1.12$ times higher (i.e., 12\% higher) in the Visayas Region than in Central Luzon, when holding age constant.  
 
 Maximum estimated additional number in the house occurs when the head of the household is around 50 years old, after adjusting for location.
 
@@ -520,10 +519,12 @@ model_location <- glm(total ~location, family = poisson, data = fHH1)
 
 Which is the single best predictor? quadratic age, roof type, or location/region? 
 
-Use Akaike Information Criterion (AIC) to compare
+Use Akaike Information Criterion (AIC) to compare!
 
 -   lower values are better
+
 -   differences of 10 are "big"
+
 -   measures model fit while accounting for complexity, analog to adjusted $R^2$
 
 ```{r}
@@ -1040,6 +1041,16 @@ The count portion of the hurdle model is actually based on a **truncated Poisson
 ## Pause to Ponder
 
 With your neighbor(s) discuss plans, ideas, questions, and concerns you have about teaching Poisson regression somewhere in your own world.
+
+## Some final takeaways
+
+- Poisson regression is a natural extension of multiple linear and logistic regression
+
+- Introduce students to the generalized linear model framework
+
+- Many cool extensions! Helps students see that statistical models can be "tweaked", that it is  a growing and changing field
+
+- Can be made accessible! Our class has no math or prob background, only applied statistics pre-requisites
 
 
 ## Preview of materials

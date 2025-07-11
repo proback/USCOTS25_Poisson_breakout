@@ -64,11 +64,11 @@ fHH1 <- read_csv("data/philippines.csv") |>
          visayas = ifelse(location == "Visayas", 1, 0))
 ```
 
+-   Data is subset from 2015 Philippine Statistics Authority's Family Income and Expenditure Survey (FIES)
 -   International agencies often use household size to determine the magnitude of the household needs
 -   Want to discern factors associated with larger households
 -   We will model both the total household size and number of children under 5
--   Data is subset from 2015 Philippine Statistics Authority's Family Income and Expenditure Survey (FIES)
--   Primary response is a count, which can make linear regression problematic
+-   Our reponse variables are *counts*, which can make linear regression problematic
 
 
 ## Philippine household data
@@ -137,9 +137,15 @@ plotPois <- function(lam){
 Pois1 <- plotPois(0.5)
 Pois2 <- plotPois(1)
 Pois3 <- plotPois(5) + scale_y_continuous(breaks = c(0, 0.1))
-Pois1
-Pois2
-Pois3
+Pois1  + 
+  theme(axis.title.x = element_text(size = 30, face = "bold"),
+                 axis.title.y = element_text(size = 30, face = "bold"))
+Pois2 + 
+  theme(axis.title.x = element_text(size = 30, face = "bold"),
+                 axis.title.y = element_text(size = 30, face = "bold"))
+Pois3 + 
+  theme(axis.title.x = element_text(size = 30, face = "bold"),
+                 axis.title.y = element_text(size = 30, face = "bold"))
 ```
 
 
@@ -418,7 +424,7 @@ total_dist <- ggplot(fHH1, aes(total)) +
   geom_histogram(binwidth = .25, 
                  color = "black", 
                  fill = "white") + 
-  xlab("Number in the house excluding head of household") +
+  xlab("# in house excluding head of household") +
   ylab("Count of households") +
   facet_wrap(~location) +
   geom_text(data = textdat, aes(x = 10, y = 90, label = Mean))
@@ -435,7 +441,7 @@ age_vs_total <- ggplot(sumStats, aes(x=age, y=logmntotal)) +
   geom_point()+
   geom_smooth(method = "loess", linewidth = 1.5)+
   xlab("Age of head of the household") +
-  ylab("Log of the empirical mean number in the house") 
+  ylab("Log mean number in the house") 
 
 total_dist + 
   theme(axis.title.x = element_text(size = 30, face = "bold"),
@@ -705,8 +711,12 @@ final_nb <- fHH1 |>
     labs(x = "Mean household size",
          y = "Variance in household size")
 
-final_qp
-final_nb
+final_qp + theme(axis.title.x = element_text(size = 30, face = "bold"),
+                 axis.title.y = element_text(size = 30, face = "bold"))
+
+final_nb + theme(axis.title.x = element_text(size = 30, face = "bold"),
+                 axis.title.y = element_text(size = 30, face = "bold"))
+
 ```
 
 
@@ -805,9 +815,15 @@ obs_by_year <- ggplot(eagles, aes(x = year, y = weeks)) +
   xlab("Year") +
   ylab("Weeks of observation")
 
-count_dist
-count_by_year
-obs_by_year
+count_dist + theme(axis.title.x = element_text(size = 30, face = "bold"),
+                 axis.title.y = element_text(size = 30, face = "bold"))
+
+count_by_year + theme(axis.title.x = element_text(size = 30, face = "bold"),
+                 axis.title.y = element_text(size = 30, face = "bold"))
+
+obs_by_year + theme(axis.title.x = element_text(size = 30, face = "bold"),
+                 axis.title.y = element_text(size = 30, face = "bold"))
+
 ```
 
 
@@ -821,12 +837,13 @@ We cannot directly compare the 2 eagles observed in 1985 to the 7 eagles observe
 
 We should examine time trends in the *rate* of bald eagles sightings; for example, we will calculate the bald eagle counts per week ($\frac{\textrm{number of bald eagles}}{\textrm{hours of observation}} \cdot (168 \textrm{ hours/week})$).  
 
+But Poisson should model *counts*...
 
 ## Offsets
 
 We let $\lambda_i$ be the expected number of eagles in year $i$ per with $\textrm{weeks}_i$ weeks observed in year $i$. 
 
-Then $\lambda_i/\textrm{weeks}_i$ is the number of eagles expected in a week!
+Then $\lambda_i/\textrm{weeks}_i$ is a rate: the number of eagles expected per week!
 
 Adjusting the yearly count by observation time is equivalent to adding $log(\textrm{weeks})$ to the right-hand side of the Poisson regression equation---essentially adding a predictor with a fixed coefficient of 1, called an __offset__: 
 
@@ -920,7 +937,8 @@ g_obs <- obs_table |>
     geom_bar(stat = "identity") +
     labs(x = "Number of drinks", y = "Proportion") +
     coord_cartesian(ylim = c(0, .5))
-g_obs
+
+
 
 ## Poisson model
 ### lambda = mean number of drinks
@@ -936,7 +954,12 @@ g_model <- ggplot(pois_model, aes(y = model_prob,
   geom_bar(stat = "identity")+
   labs(x = "Number of drinks", y = "Probability") +
   coord_cartesian(ylim = c(0, .5))
-g_model
+
+g_obs + theme(axis.title.x = element_text(size = 30, face = "bold"),
+                 axis.title.y = element_text(size = 30, face = "bold"))
+
+g_model + theme(axis.title.x = element_text(size = 30, face = "bold"),
+                 axis.title.y = element_text(size = 30, face = "bold"))
 ```
 
 There are more zeros than expected under a Poisson model.
@@ -1001,7 +1024,10 @@ ggplot(p.table, aes(x = totalIssuePages,
                     yend = freq)) +
   geom_segment() + 
   labs(y = "Proportion", 
-       x = "Observed total issue pages")
+       x = "Observed total issue pages") + 
+  theme(axis.title.x = element_text(size = 30, face = "bold"),
+                 axis.title.y = element_text(size = 30, face = "bold"))
+
 ```
 
 \small

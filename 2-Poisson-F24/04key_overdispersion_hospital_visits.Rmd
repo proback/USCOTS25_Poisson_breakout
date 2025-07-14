@@ -2,16 +2,18 @@
 title: "Poisson Regression with OverDispersion"
 author: "Prof Boehm Vock"
 output:
-  pdf_document: default
   html_document: default
 editor_options: 
   chunk_output_type: console
 ---
 
-Learning Goals: 
-- Explore differences between quasipoisson and negative binomial regression
-- Use graph of mean vs variance to choose between Poisson, QuasiPoisson, and Negative Binomial model.
-- Identify pros and cons of quasipoisson and negative binomial modeling approaches
+
+## Learning Goals: 
+-  Explore differences between quasipoisson and negative binomial regression
+
+-  Use graph of mean vs variance to choose between Poisson, QuasiPoisson, and Negative Binomial model.
+
+-  Identify pros and cons of quasipoisson and negative binomial modeling approaches
 
 ```{r}
 library(tidyverse)
@@ -22,24 +24,176 @@ NMES1988
 help(NMES1988, package = "AER")
 ```
 
+## Before Class
 
-**I"ll filll in the answers in the first section later, but I did fill in starting with #9**
 Consider the variable `hospital` as the response variable.
 
 1. Conduct some EDA to determine which of the following variables may be potentially related to the number of hospitalizations: health, chronic, adl, income.
+
+Self-perceived health status (`health`): 
+```{r}
+NMES1988 |>
+  group_by(health) |>
+  summarize(mean(hospital), sd(hospital), n())
+
+ggplot(NMES1988, aes(health, hospital)) + 
+  geom_jitter()
+
+ggplot(NMES1988, aes(hospital)) +
+  geom_histogram() +
+  facet_wrap(~health, nrow = 3)
+```
+
+Better perceived health has a negative association with number of hospitalizations. 
+
+
+Number of Chronic conditions (`chronic`): 
+```{r}
+NMES1988 |>
+  group_by(chronic) |>
+  summarize(mean(hospital), sd(hospital), n())
+
+ggplot(NMES1988, aes(chronic, hospital)) + 
+  geom_jitter() +
+  geom_smooth(method = loess)
+
+
+NMES1988 |>
+  group_by(chronic) |>
+  summarize(mean_hosp = mean(hospital)) |>
+  ggplot(aes(chronic,log(mean_hosp))) +
+  geom_point() +
+  geom_smooth(method = lm, se = FALSE)
+```
+
+Slight positive association betweeen number of chronice conditions and hospitalizations, although the number of people with more than 5 conditions is quite low, hence a lot of uncertanity in this range.
+
+
+Limitations on activities of daily living (`adl`): 
+```{r}
+NMES1988 |>
+  group_by(adl) |>
+  summarize(mean(hospital), sd(hospital), n())
+
+ggplot(NMES1988, aes(hospital)) +
+  geom_histogram() +
+  facet_wrap(~adl, nrow = 2)
+```
+
+Average number of hospitalizations is about twice as high for people with limited ADL.
+
+Income: 
+```{r}
+ggplot(NMES1988, aes(income, hospital)) + 
+  geom_jitter() +
+  geom_smooth()
+
+ggplot(NMES1988, aes(log(income), hospital)) + 
+  geom_jitter() +
+  geom_smooth()
+```
+
+Income doesn't appear to have a very strong effect.
+
 
 
 
 2. Which of our potential explanatory variables are related to *each other*? (We still need to think about issues of multicollinearity!)
 
+```{r}
+library(GGally)
 
+NMES1988 |>
+  select(health, chronic, adl, income) |>
+  ggpairs()
+```
+
+
+Health statusts is related to number of chronic conditions and ADL.
 
 3. Fit four separate Poisson regression models, each with a single predictor (health, chronic, adl, income) with `hospital` visits as the response. Which variable is by itself the best predictor? How do you know? 
+
+
+```{r}
+hosp_health <- glm(hospital ~ health, data = NMES1988, family = poisson)
+summary(hosp_health)
+
+hosp_chronic <- glm(hospital ~ chronic, data = NMES1988, family = poisson)
+summary(hosp_chronic)
+
+hosp_adl <- glm(hospital ~ adl, data = NMES1988, family = poisson)
+summary(hosp_adl)
+
+hosp_income <- glm(hospital ~ income, data = NMES1988, family = poisson)
+summary(hosp_income)
+
+AIC(hosp_health, hosp_chronic, hosp_adl, hosp_income)
+```
+
+Income does not have a significant relationship with number of hospitalizations (p = 0.195), but the other three variables do. The strongest association is probably with number of chronic conditions since this has the far lowest AIC.
 
 
 4. Consider again the same list of variables: health, chronic, adl, and income, but this time use the response variable of `visits`. Do some EDA to determine which variables might be related to the response variable of `visits` (number of physician office visits). 
 
 
+
+
+Self-perceived health status (`health`): 
+```{r}
+NMES1988 |>
+  group_by(health) |>
+  summarize(mean(visits), sd(visits), n())
+
+ggplot(NMES1988, aes(health, visits)) + 
+  geom_jitter()
+
+ggplot(NMES1988, aes(visits)) +
+  geom_histogram() +
+  facet_wrap(~health, nrow = 3)
+```
+
+Better perceived health has a negative association with number of visits. 
+
+
+Number of Chronic conditions (`chronic`): 
+```{r}
+NMES1988 |>
+  group_by(chronic) |>
+  summarize(mean(visits), sd(visits), n())
+
+ggplot(NMES1988, aes(chronic, visits)) + 
+  geom_jitter() +
+  geom_smooth(method = loess)
+```
+
+Slight positive association betweeen number of chronic conditions and visits, although the number of people with more than 5 conditions is quite low, hence a lot of uncertanity in this range.
+
+
+Limitations on activities of daily living (`adl`): 
+```{r}
+NMES1988 |>
+  group_by(adl) |>
+  summarize(mean(visits), sd(visits), n())
+
+ggplot(NMES1988, aes(visits)) +
+  geom_histogram() +
+  facet_wrap(~adl, nrow = 2)
+```
+
+Average number of visitsizations is about 35% higher for people with limited ADL. (7.3 visits vs 5.3 visits on average)
+
+Income: 
+```{r}
+ggplot(NMES1988, aes(income, visits)) + 
+  geom_jitter() +
+  geom_smooth()
+
+ggplot(NMES1988, aes(log(income), visits)) + 
+  geom_jitter() +
+  geom_smooth()
+```
+
+Income doesn't appear to have a very strong effect.
 
 
 ## In class ##
@@ -48,15 +202,67 @@ In this section, we use `hospital` as the response variable.
 
 5. Fit two different models with `hospital` as response that you think might be "good." Which one is better? How do you know? 
 
+Based on EDA above, I'll start with the model that has the three variables that were individually significant:
+
+```{r}
+hosp1 <- glm(hospital ~ health + chronic + adl, data = NMES1988, family = poisson)
+summary(hosp1)
+```
+
+This looks good, but I'll try adding income, in case there is an association after accounting for everything else:
+```{r}
+hosp2 <- glm(hospital ~ health + chronic + adl + income, data = NMES1988, family = poisson)
+summary(hosp2)
+```
+
+income isn't significant, and the AIC went up. So the first model is better and income is not needed. 
 
 6. Interpret the intercept and at least one slope from your model.
+
+```{r}
+coef(hosp1) |> exp()
+```
+
+Average number of hospitalizations for a person with normal ADL, average self-perceived health, and 0 chronic conditions is 0.15 per year. 
+
+Patients in poor health have on average 66% more hospital visits than people with average health, after accounting for number of chronic conditions and ADL.
+
+For each additional chronic condition, expected number of hospitalizations increases by 28%, after accounting for ADL and perceived health status. 
 
 
 7. Check the plot of deviance residuals vs fitted values for evidence of nonlinearity. 
 
+```{r}
+hosp.pred <- data.frame(fitted = predict(hosp1),
+                            resid = resid(hosp1))
+
+ggplot(hosp.pred, aes(x = fitted, y = resid)) + 
+  geom_point() +
+  geom_smooth(se = FALSE, color = "red")
+```
+
+*Looks good!*
+
 
 8. Is there evidence of overdispersion? 
 
+```{r}
+summary(hosp1)
+
+NMES1988 %>%
+  mutate(pred = predict(hosp1),  
+         grouping = cut_number(pred, 6)) %>% 
+  group_by(grouping) %>% 
+  summarize(Mean = mean(hospital),
+            Var = var(hospital)) %>% 
+  ggplot(aes(Mean, Var)) + 
+  geom_point() +
+  geom_smooth(method = lm, se = FALSE) + 
+  geom_abline(slope = 1, intercept = 0) +
+  coord_equal()
+```
+
+Residual deviance (4135) is slightly lower than df (4401), so this suggests possible UNDER dispersion rather than over dispersion. The Variance is a bit higher than the mean in the mean vs variance plot... but overall this looks pretty good.
 
 *************
 
@@ -87,17 +293,17 @@ NMES1988 %>%
   ggplot(aes(Mean, Var)) + 
   geom_point() +
   geom_smooth(method = lm, se = FALSE) + 
-  geom_abline(slope = 1, intercept = 0) + 
+  geom_abline(slope = 1, intercept = 0) +
   coord_cartesian(ylim = c(0 , 90))
 ```
 
 * Does the mean vs variance plot suggest overdispersion? 
 
-YES
+YES, the variance is about 6 or 7 times greater than the mean!
 
 * Is the relationship of mean and variance linear, or curved?
 
-LINEAR
+LINEAR looks pretty good.
 
 
 ## Negative binomial vs. Quasi Poisson
@@ -166,7 +372,7 @@ cor(NMES1988$visits, NMES1988$income)
 ```
 
 
-*What you should see above: The linear relationship of mean and variance suggests a quasi poisson model would be appropriate. If you really want to have a likelihood based model (for example, if you want to do lots of LRT/DDTs to compare nested models), you might still go with the negative binomail. Though the assumption is a quadratic relationship, it can do ok for a linear relationship too. In this case, either model is justifiable, and we come to similar overall conclusions.*
+*What you should see above: The linear relationship of mean and variance suggests a quasi poisson model would be appropriate. If you really want to have a likelihood based model (for example, if you want to do lots of LRT/DDTs to compare nested models), you might still go with the negative binomial. Though the assumption is a quadratic relationship, it can do ok for a linear relationship too. In this case, either model is justifiable, and we come to similar overall conclusions.*
 
 
 12. A different group of researchers proposes the following model instead, and create the mean vs variance plot. Which type of overdispersed model seems more appropriate: quasipoisson or negative binomial? 
@@ -234,7 +440,7 @@ The poisson are not really scaled properly by variance. Divide those deviance re
 ```{r}
 fitdeviance <- data.frame(fitted = predict(visits2),
                             resid = resid(visits2)/sqrt(6.95), 
-                     model = "poisson") %>%
+                     model = "quasi_poisson") %>%
   bind_rows(data.frame(fitted = predict(visits2nb),
                             resid = resid(visits2nb), 
                      model = "negative_binomial"))
@@ -246,11 +452,14 @@ ggplot(fitdeviance, aes(x = fitted, y = resid)) +
 ```
 
 
+Note that in both plots we still see some curvature... maybe quadratic terms could be used for some of the continuous variables? 
+
+Note also that the deviances are not exactly the same... when the fitted values are large, the deviances for the negative binomial model are not as great as the deviances from the quasipoisson. In other words, since more variability is expected here, the observations are not counted as so unusual and have less deviance. 
+
 15. Which model is preferred: visits1 or visits2? 
 
 ```{r}
-visits1nb
-visits2nb
+AIC(visits1nb, visits2nb)
 ```
 
 *We can use AIC if we use the negative binomial models. Visits2 has the lower AIC so is preferred. (Note however we still could probably make an even better model!)*

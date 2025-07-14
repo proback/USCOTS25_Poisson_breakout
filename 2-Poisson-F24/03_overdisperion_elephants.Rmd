@@ -3,15 +3,17 @@ title: "Overdispersion"
 author: "Laura Boehm Vock"
 date: "9/13/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
-Learning goals
+## Learning goals
 
-1. Identify when an overdispersed model is necessary using graphical evidence, residual deviance and goodness of fit test. 
+- Identify when an overdispersed model is necessary using graphical evidence, residual deviance and goodness of fit test. 
 
-2. Fit a quasipoisson model in R.
+- Fit a quasipoisson model in R.
 
-3. Identify the overdispersion parameter from quasipoisson model output. 
+- Identify the overdispersion parameter from quasipoisson model output. 
 
 
 # Intro: More Elephants

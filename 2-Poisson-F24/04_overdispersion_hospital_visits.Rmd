@@ -2,16 +2,21 @@
 title: "Poisson Regression with OverDispersion"
 author: "Prof Boehm Vock"
 output:
-  pdf_document: default
   html_document: default
 editor_options: 
   chunk_output_type: console
 ---
 
-Learning Goals: 
-- Explore differences between quasipoisson and negative binomial regression
-- Use graph of mean vs variance to choose between Poisson, QuasiPoisson, and Negative Binomial model.
-- Identify pros and cons of quasipoisson and negative binomial modeling approaches
+## Learning Goals: 
+-  Explore differences between quasipoisson and negative binomial regression
+
+-  Use graph of mean vs variance to choose between Poisson, QuasiPoisson, and Negative Binomial model.
+
+-  Identify pros and cons of quasipoisson and negative binomial modeling approaches
+
+
+
+## Before class
 
 ```{r}
 data(NMES1988, package = "AER")

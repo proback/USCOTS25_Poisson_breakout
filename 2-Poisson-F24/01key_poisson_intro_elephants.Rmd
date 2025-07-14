@@ -7,11 +7,15 @@ editor_options:
   chunk_output_type: console
 ---
 
-Learning goals: 
+## Learning goals: 
 - Describe why Poisson regression is a better choice for count data than linear regression
+
 - Identify four conditions for Poisson regression
+
 - Fit a Poisson regression using R
+
 - Interpret parameters from a Poisson regression model in context
+
 - Evaluate conditions of a Poisson regression model
 
 > Complete 1 - 2 before class.

@@ -7,10 +7,13 @@ editor_options:
   chunk_output_type: console
 ---
 
-Learning Goals: 
+## Learning Goals: 
 - Identify when an offset is needed in a Poisson regression model and identify the appropriate offset variable
+
 - Fit a Poisson regression model with offset in R
+
 - Interpret intercept and slope coefficients for a Poisson regression model with offset
+
 - Describe how coefficient estimates will or will not change if different units are used for the offset
 
 
@@ -234,10 +237,12 @@ Again, this is vague...
 
 ### More time, More practice.
 
-Check out the NYCairbnb data described in Open Ended Exercises. https://bookdown.org/roback/bookdown-BeyondMLR/ch-poissonreg.html#open-ended-exercises-2
+Check out the NYCairbnb data described in [Open Ended Exercises](https://bookdown.org/roback/bookdown-BeyondMLR/ch-poissonreg.html#open-ended-exercises-2).
+
+The 2.1 MB data file can be downloaded from https://github.com/proback/BeyondMLR/tree/master/data
 
 ```{r}
-# NYCairbnb <- read_csv("~/Stats_316_F24/Class/Data/NYCairbnb.csv")
+# NYCairbnb <- read_csv("NYCairbnb.csv")
 
 # NYCairbnb
 ```

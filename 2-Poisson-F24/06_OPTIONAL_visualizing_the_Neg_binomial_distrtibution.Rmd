@@ -3,7 +3,18 @@ title: "Negative Binomial Distribution"
 author: "Laura Boehm Vock"
 date: "10/8/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
+
+# Learning Goals:
+-  Identify how shape and variance of Negative binomial distribution changes as $r$ changes.
+
+- Recognize the negative binomial distribution as another distribution useful for modeling count data
+
+
+
+# How does negative binomial differ from Poisson?
 
 Consider again the medical visits data from the homework.
 

@@ -3,14 +3,20 @@ title: "ZIP model"
 author: "Laura Boehm Vock"
 date: "9/24/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
-Learning goals 
-- Identify when a ZIP may be needed and why
-- Fit a ZIP model with R package pscl
-- Interpret coefficients from the poisson and binary parts of a ZIP model
-- Write down a ZIP model with proper notation
-- Use the Vuong test to check if the ZIP model is better than ordinary poisson.
+# Learning goals 
+-  Identify when a ZIP may be needed and why
+
+-  Fit a ZIP model with R package pscl
+
+-  Interpret coefficients from the poisson and binary parts of a ZIP model
+
+-  Write down a ZIP model with proper notation
+
+-  Use the Vuong test to check if the ZIP model is better than ordinary poisson.
 
 # Before class
 
@@ -22,10 +28,14 @@ This replicates the Weekend Drinking data analysis in Ch 4 of the textbook.
 library(tidyverse)
 library(pscl) ### Need this library for ZIP model
 
-drinks.data <- read_csv("~/Stats_316_F24/Class/Data/weekendDrinks.csv")
+library(here)
+
+here::i_am("2-Poisson-F24/05key_ZIP_model_drinks_fish.Rmd")
+
+drinks.data <- read_csv(here("data/weekendDrinks.csv"))
 head(drinks.data)
 
-drinks.data <- drinks.data %>%
+drinks.data <- drinks.data |>
   mutate(offcampus = ifelse(dorm == "off campus", 1, 0),
          firstyear = ifelse(dorm %in% c("kildahl", "kittlesby", "mohn"), 1, 0))
 ```
@@ -67,7 +77,7 @@ grid.arrange(obs.hist, exp.hist, ncol=1)  #grid.arrange is from the gridExtra pa
 2. What variables might be useful to predict the "0"s? Create an indicator variable for "zero drinks" and create graphs and/or tables to identify variables that may be good predictors of "zero drinks".
 
 ```{r}
-drinks.data <- drinks.data %>%
+drinks.data <- drinks.data |>
   mutate(zerodrinks = ifelse(drinks == 0, "zero", "notzero"))
 
 ```
@@ -128,7 +138,7 @@ For 250 camping parties at a park, the number of fish caught (`count`), number o
 ```{r}
 library(tidyverse)
 library(pscl)
-fish <- read_csv("~/Stats_316_F24/Class/Data/fish2.csv")
+fish <- read_csv(here("2-Poisson-F24/Data/fish2.csv"))
 ```
 
 
@@ -173,7 +183,7 @@ ggplot(fish, aes(y=count, x=LOS)) +
 2. The number of fish caught may depend differently on the number of children compared to the number of adults in the party. From "persons" and "children" we create two new variables. Describe each of these variables.
 
 ```{r}
-fish <- fish %>%
+fish <- fish |>
   mutate(adults = persons - child,
          children.present = if_else(child > 0, "yes", "no"))
 ```
@@ -208,8 +218,8 @@ ggplot(fish, aes(fill =  (count==0), x = child)) +
 
 # Summary Statistics Tables
 ```{r}
-fish  %>% 
-  group_by(adults) %>% 
+fish  |> 
+  group_by(adults) |> 
   summarise(MeanFish=mean(count/LOS), 
             VarFish=var(count/LOS),
             n=n())

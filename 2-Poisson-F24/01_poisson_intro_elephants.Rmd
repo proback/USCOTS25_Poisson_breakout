@@ -18,10 +18,12 @@ Learning goals:
 
 ```{r, setup, message=FALSE}
 library(tidyverse)
-library(gridExtra) 
+library(gridExtra)
+library(here)
 
-elephant <- read_csv("~/Stats_316_F24/Class/Data/elephant.csv") %>% 
-  rename(age=AGE, matings=MATINGS)
+here::i_am("2-Poisson-F24/01_poisson_intro_elephants.Rmd")
+elephant <- read_csv(here("2-Poisson-F24/Data/elephant.csv")) 
+
 elephant
 ```
 
@@ -82,11 +84,11 @@ ggplot(data = elephant, aes(x = age, y = log(matings + 0.5))) +
 ```
 
 ```{r}
-reg2 <- lm(log(matings + 0.5) ~ age, data=elephant)
-summary(reg2)
+# reg2 <- lm(log(matings + 0.5) ~ ?????)
+# summary(reg2)
 
-par(mfrow= c(2,2))
-plot(reg2)
+# par(mfrow= c(2,2))
+# plot(reg2)
 ```
 
 
@@ -146,7 +148,8 @@ It's a little tricky, but we can use geom_function to draw this curve:
 ```{r}
 ggplot(elephant, aes(x = age, y = matings)) + 
   geom_jitter() + 
-  geom_function(fun = function(x){exp(coef(pois.elephant)[1] + coef(pois.elephant)[2]*x)})
+  geom_function(fun = function(x){exp(coef(pois.elephant)[1] + coef(pois.elephant)[2]*x)}) +
+  labs(title = "Poisson regression model of matings")
 ```
 
 
@@ -158,7 +161,7 @@ ggplot(elephant, aes(x = age, y = matings)) +
 
 
 
-8. Interpret the 95\% confidence interval for the slope on age in model `pois.elephant`.
+8. Find and interpret the 95\% confidence interval for the slope on age in model `pois.elephant`. 
 
 
 
@@ -175,7 +178,8 @@ pois.elephant2 <- glm(matings ~ age + I(age^2), family=poisson, data=elephant)
 ggplot(elephant, aes(x = age, y = matings)) + 
   geom_jitter() + 
   geom_function(fun = function(x){exp(coef(pois.elephant)[1] + coef(pois.elephant)[2]*x)}) + 
-  geom_function(fun = function(x){exp(coef(pois.elephant2)[1] + coef(pois.elephant2)[2]*x + coef(pois.elephant2)[3]*x^2)}, col = "red") 
+  geom_function(fun = function(x){exp(coef(pois.elephant2)[1] + coef(pois.elephant2)[2]*x + coef(pois.elephant2)[3]*x^2)}, col = "red") +
+  labs(title = "Comparison of linear (black) and quadratic (red) Poisson model of matings vs age")
 ```
 
 
@@ -183,11 +187,12 @@ ggplot(elephant, aes(x = age, y = matings)) +
 
 Some simple EDA to check the Poisson assumptions. 
 
-a. Plot the empirical log means against the explanatory variable
+a. Plot the empirical log means against the explanatory variable. Which condition
+does this help us verify? 
 
 ```{r}
-elephantmeans <- elephant %>% 
-  group_by(age) %>% 
+elephantmeans <- elephant |> 
+  group_by(age) |> 
   summarize(logmean = log(mean(matings)))
 
 ggplot(elephantmeans, aes(x = age, y = logmean)) +
@@ -195,13 +200,13 @@ ggplot(elephantmeans, aes(x = age, y = logmean)) +
   geom_smooth(method = 'lm', se = FALSE)
 ```
 
-This looks like a linear relationship!
 
-b. Compare the mean and variance of matings by age.
+
+b. Compare the mean and variance of matings by age. (Code below). Which condition does this help us verify? 
 
 ```{r}
-elephant %>% 
-  group_by(age) %>%
+elephant |> 
+  group_by(age) |>
   summarize(mean = mean(matings), variance = var(matings), n = n())
 ```
 
@@ -209,13 +214,9 @@ The last column of the table shows the number of elephants at each age. We can s
 To fix this we can use the "cut_number" function. (See ?cut_number... also, ?cut_interval).
 
 ```{r}
-elephant %>%
-  mutate(agegroup = cut_number(age, 5)) %>%
-  group_by(agegroup) %>%
+elephant |>
+  mutate(agegroup = cut_number(age, 5)) |>
+  group_by(agegroup) |>
   summarize(mean = mean(matings), variance = var(matings), n = n()) 
 ```
-
-Though the mean is not exactly equal to variance, the variance is increasing as the mean increases, so that is a good sign.
-
-
 

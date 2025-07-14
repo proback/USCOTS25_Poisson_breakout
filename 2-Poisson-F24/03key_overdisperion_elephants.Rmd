@@ -19,8 +19,10 @@ Learning goals
 library(tidyverse)
 library(gridExtra) 
 
-elephant <- read_csv("~/Stats_316_F24/Class/Data/elephant.csv") %>% 
-  rename(age=AGE, matings=MATINGS)
+library(here)
+
+here::i_am("2-Poisson-F24/01key_poisson_intro_elephants.Rmd")
+elephant <- read_csv(here("2-Poisson-F24/Data/elephant.csv")) 
 
 elephant
 ```
@@ -30,15 +32,15 @@ We have previously examined the `elephant` dataset. An article by Poole (1989) i
 An examination of the mean vs variance demonstrated that the two were not exactly equal:
 
 ```{r}
-elephant %>%
-  mutate(agegroup = cut_number(age, 5)) %>%
-  group_by(agegroup) %>%
+elephant |>
+  mutate(agegroup = cut_number(age, 5)) |>
+  group_by(agegroup) |>
   summarize(mean = mean(matings), variance = var(matings), n = n(), ratio = variance/mean) 
 
-elephant %>%
-  mutate(agegroup = cut_number(age, 10)) %>%
-  group_by(agegroup) %>%
-  summarize(mean = mean(matings), variance = var(matings)) %>%
+elephant |>
+  mutate(agegroup = cut_number(age, 10)) |>
+  group_by(agegroup) |>
+  summarize(mean = mean(matings), variance = var(matings)) |>
   ggplot(aes(x = mean, y = variance)) + 
   geom_point() + 
   geom_abline(slope = 1, intercept = 0) + 
@@ -49,16 +51,16 @@ elephant %>%
 1. As you might try different binwidths to examine a distribution via a histogram, we should probably remake the above table trying different bins. Experiment with changes to cut_number or use cut_interval or cut_width instead. What patterns do you see?
 
 ```{r}
-elephant %>%
-  mutate(agegroup = cut_interval(age, 5)) %>%
-  group_by(agegroup) %>%
+elephant |>
+  mutate(agegroup = cut_interval(age, 5)) |>
+  group_by(agegroup) |>
   summarize(mean = mean(matings), variance = var(matings), n = n(), ratio = variance/mean) 
 ```
 
 ```{r}
-elephant %>%
-  mutate(agegroup = cut_width(age, width = 4, center = 31)) %>%
-  group_by(agegroup) %>%
+elephant |>
+  mutate(agegroup = cut_width(age, width = 4, center = 31)) |>
+  group_by(agegroup) |>
   summarize(mean = mean(matings), variance = var(matings), n = n(), ratio = variance/mean) 
 ```
 
@@ -156,9 +158,9 @@ Our goal is to investigate whether the Soccer Power Index (spi) is useful for pr
 # library(fivethirtyeight)
 # data("wwc_2019_matches")
 # 
-# wwc_games <- wwc_2019_matches %>%
-#   mutate(game = row_number()) %>%
-#   select(date, game, team1, team2, score1, score2, spi1, spi2) %>%
+# wwc_games <- wwc_2019_matches |>
+#   mutate(game = row_number()) |>
+#   select(date, game, team1, team2, score1, score2, spi1, spi2) |>
 #   pivot_longer(-c(date, game),
 #                names_to= c(".value", "team_num"),
 #                names_pattern = "([a-z]*)([1-2])")
@@ -177,7 +179,7 @@ game and team_num provide an index. Each game is represented by 2 rows.
 Read in the data, then produce our usual summary information:
 
 ```{r}
- wwc_games <- read_csv("~/Stats_316_F24/Class/Data/wwc_games.csv")
+wwc_games <- read_csv(here("2-Poisson-F24/Data/wwc_games.csv"))
 
 dim(wwc_games)
 str(wwc_games)
@@ -207,10 +209,10 @@ ggplot(wwc_games, aes(x = spi, y = log(score))) +
 2. Create a graph of mean vs variance with a blue and black line, similar to the one for elephants in the example code above. What does this suggest to use about the appropriateness of a Poisson regression model?
 
 ```{r}
-wwc_games %>% 
-  mutate(spigroup = cut_interval(spi, 6)) %>%
-  group_by(spigroup) %>%
-  summarize(meanscore = mean(score), varscore = var(score), n = n()) %>%
+wwc_games |> 
+  mutate(spigroup = cut_interval(spi, 6)) |>
+  group_by(spigroup) |>
+  summarize(meanscore = mean(score), varscore = var(score), n = n()) |>
   ggplot(aes(x = meanscore, y = varscore)) +
   geom_point() + 
   geom_smooth(method = 'lm', se = FALSE) + 
@@ -264,20 +266,53 @@ If you can adapt your model to account for any of these, DO THAT FIRST. Then, if
 
 6. Plot the fitted values vs residuals. Do you see any outliers or evidence of non-linearity?
 
+```{r}
+soccer.pred <- data.frame(fitted = predict(wwc.pois),
+                            resid = resid(wwc.pois))
 
+ggplot(soccer.pred, aes(x = fitted, y = resid)) + 
+  geom_point() +
+  geom_smooth(se = FALSE, color = "red", span = 2) + 
+  geom_abline(intercept = 0, slope = 0)
+```
 
+*One large outlier (this was the game with 13 goals!) and possibly a quadratic relationship. 
 
 7. What are some suggestions for further modeling?? Try a few possibilities.
 
 
+```{r}
+wwc.pois2 <- glm(score ~ spi + I(spi^2), data = wwc_games, family = poisson)
+summary(wwc.pois2)
+
+wwc.qpois2 <- glm(score ~ spi + I(spi^2), data = wwc_games, family = quasipoisson)
+summary(wwc.qpois2)
+
+soccer.pred2 <- data.frame(fitted = predict(wwc.pois2),
+                            resid = resid(wwc.pois2))
+
+ggplot(soccer.pred2, aes(x = fitted, y = resid)) + 
+  geom_point() +
+  geom_smooth(se = FALSE, color = "red", span = 2) + 
+  geom_abline(intercept = 0, slope = 0)
+```
+
+Age squared is significant, and it seems to help a little with curvature of deviance residuals (Note: These never seem to become perfectly flat for Poisson...) and there is still the big outlier. The quadratic term is also significant after accounting for overdispersion (p = 0.049)
+
+
 8. Give at least one reason why it may not be appropriate to assume the observations are independent in this dataset.
 
+*the same teams play in multiple different matches*
 
 
 # Soccer goals: Negative binomial model
 
 Another approach to accounting for overdisperson is the Negative Binomial model. The interpretation of regression coefficients is the same as in the Poisson and Quasi-Poisson models. The distributional assumption is slightly different (negative binomial rather than Poisson), and the relationship between mean and variance is thus different (more of a quadratic relationship).
 
+The `glm.nb` function works a lot like  `glm`, but is in the `MASS` package. Because MASS has several conflicts with tidyverse, I usually use `MASS::glm.nb` rather than loading the entire package with `library()`. 
+
+
+Can you modify the code below to fit one of your models from 7 but with a negative binomial rather than poisson? 
 
 ```{r}
 ?MASS::glm.nb
@@ -285,6 +320,18 @@ Another approach to accounting for overdisperson is the Negative Binomial model.
 wwc.nb <- MASS::glm.nb(score ~ spi, data = wwc_games)
 
 summary(wwc.nb)
+
+wwc.nb2 <- MASS::glm.nb(score ~ spi + I(spi^2), data = wwc_games)
+
+summary(wwc.nb2)
+
+soccer.prednb2 <- data.frame(fitted = predict(wwc.nb2),
+                            resid = resid(wwc.nb2))
+
+ggplot(soccer.prednb2, aes(x = fitted, y = resid)) + 
+  geom_point() +
+  geom_smooth(se = FALSE, color = "red", span = 2) + 
+  geom_abline(intercept = 0, slope = 0)
 ```
 
 

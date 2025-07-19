@@ -1,7 +1,7 @@
 ---
 title: Integrating Poisson regression into the undergraduate curriculum
-subtitle: USCOTS25 Breakout Session B3H
-author: Laura Boehm Vock and Paul Roback
+subtitle: USCOTS25 Breakout Session B3H 
+author: Laura Boehm Vock and Paul Roback \newline \newline github.com/proback/USCOTS25_Poisson_breakout
 format: 
   beamer:
     navigation: horizontal
@@ -117,7 +117,7 @@ Note that both $E(Y_i) = \lambda_i$ and $Var(Y_i) = \lambda_i$.
 #| warning: FALSE
 #| layout-ncol: 3
 #| layout-nrow: 1
-#| out-width: 70%
+#| out-width: 90%
 
 #poissonPlots
 plotPois <- function(lam){
@@ -138,14 +138,18 @@ Pois1 <- plotPois(0.5)
 Pois2 <- plotPois(1)
 Pois3 <- plotPois(5) + scale_y_continuous(breaks = c(0, 0.1))
 Pois1  + 
-  theme(axis.title.x = element_text(size = 30, face = "bold"),
-                 axis.title.y = element_text(size = 30, face = "bold"))
+  theme(axis.title.x = element_text(size = 40, face = "bold"),
+                 axis.title.y = element_text(size = 40, face = "bold"),
+        axis.text = element_text(size = 25))
 Pois2 + 
-  theme(axis.title.x = element_text(size = 30, face = "bold"),
-                 axis.title.y = element_text(size = 30, face = "bold"))
+  theme(axis.title.x = element_text(size = 40, face = "bold"),
+                 axis.title.y = element_text(size = 40, face = "bold"),
+        axis.text = element_text(size = 25))
+
 Pois3 + 
-  theme(axis.title.x = element_text(size = 30, face = "bold"),
-                 axis.title.y = element_text(size = 30, face = "bold"))
+  theme(axis.title.x = element_text(size = 40, face = "bold"),
+                 axis.title.y = element_text(size = 40, face = "bold"),
+        axis.text = element_text(size = 25))
 ```
 
 
@@ -300,7 +304,7 @@ $\mu = \beta_0 + X\beta_1$ | $log(\lambda) = \beta_0 + X\beta_1$
 #| warning: FALSE
 #| layout-ncol: 2
 #| layout-nrow: 1
-#| out-width: 70%
+#| out-width: 90%
 
 LT5_dist <- ggplot(fHH1, aes(numLT5)) + 
   geom_histogram(binwidth = .25, 
@@ -323,9 +327,11 @@ age_vs_LT5 <- ggplot(sumStats, aes(x=age, y=logmnLT5)) +
   ylab("Log mean # of children < 5") 
 
 LT5_dist + theme(axis.title.x = element_text(size = 30, face = "bold"),
-                 axis.title.y = element_text(size = 30, face = "bold"))
+                 axis.title.y = element_text(size = 30, face = "bold"),
+        axis.text = element_text(size = 20))
 age_vs_LT5 + theme(axis.title.x = element_text(size = 30, face = "bold"),
-                 axis.title.y = element_text(size = 30, face = "bold"))
+                 axis.title.y = element_text(size = 30, face = "bold"),
+        axis.text = element_text(size = 20))
 ```
 
 
@@ -411,7 +417,7 @@ Most significant ideas from multiple linear regression are reinforced by Poisson
 #| warning: FALSE
 #| layout-ncol: 2
 #| layout-nrow: 1
-#| out-width: 70%
+#| out-width: 90%
 
 textdat <- fHH1 |> 
   group_by(location) |>
@@ -427,7 +433,7 @@ total_dist <- ggplot(fHH1, aes(total)) +
   xlab("# in house excluding head of household") +
   ylab("Count of households") +
   facet_wrap(~location) +
-  geom_text(data = textdat, aes(x = 10, y = 90, label = Mean))
+  geom_text(data = textdat, aes(x = 10, y = 90, label = Mean), size = 8)
  
 
 ## Checking linearity assumption: Empirical log of the means plot
@@ -445,11 +451,14 @@ age_vs_total <- ggplot(sumStats, aes(x=age, y=logmntotal)) +
 
 total_dist + 
   theme(axis.title.x = element_text(size = 30, face = "bold"),
-                 axis.title.y = element_text(size = 30, face = "bold"))
+                 axis.title.y = element_text(size = 30, face = "bold"), 
+        strip.text = element_text(size = 25),
+        axis.text = element_text(size = 20))
 
 age_vs_total+ 
   theme(axis.title.x = element_text(size = 30, face = "bold"),
-                 axis.title.y = element_text(size = 30, face = "bold"))
+                 axis.title.y = element_text(size = 30, face = "bold"),
+        axis.text = element_text(size = 20))
 ```
 
 \textbf{Pause to Ponder}
@@ -582,10 +591,12 @@ total_dist <- ggplot(fHH1, aes(total)) +
   xlab("Number in the house excluding head of household") +
   ylab("Count of households") +
   facet_wrap(~location) +
-  geom_text(data = textdat, aes(x = 10, y = 90, label = Mean, size = 30))
+  geom_text(data = textdat, aes(x = 10, y = 90, label = Mean), size = 8)
 
 total_dist + theme(axis.title.x = element_text(size = 18, face = "bold"),
-                   axis.title.y = element_text(size = 18, face = "bold"))
+                   axis.title.y = element_text(size = 18, face = "bold"), 
+        strip.text = element_text(size = 30),
+        axis.text = element_text(size = 20))
 ```
 
 
@@ -683,7 +694,7 @@ Diagnostic plot for overdisperion: plot mean vs. variance for groups of househol
 #| warning: FALSE
 #| layout-ncol: 2
 #| layout-nrow: 1
-#| out-width: 70%
+#| out-width: 90%
 
 final_qp <- fHH1 |> 
   mutate(pred = predict(modela2L), 
@@ -712,10 +723,12 @@ final_nb <- fHH1 |>
          y = "Variance in household size")
 
 final_qp + theme(axis.title.x = element_text(size = 30, face = "bold"),
-                 axis.title.y = element_text(size = 30, face = "bold"))
+                 axis.title.y = element_text(size = 30, face = "bold"),
+        axis.text = element_text(size = 20))
 
 final_nb + theme(axis.title.x = element_text(size = 30, face = "bold"),
-                 axis.title.y = element_text(size = 30, face = "bold"))
+                 axis.title.y = element_text(size = 30, face = "bold"),
+        axis.text = element_text(size = 20))
 
 ```
 
@@ -797,7 +810,7 @@ Credit: © Ron Niebrugge/wildnatureimages
 #| warning: FALSE
 #| layout-ncol: 3
 #| layout-nrow: 1
-#| out-width: 70%
+#| out-width: 90%
 
 count_dist <- ggplot(eagles, aes(x = count)) + 
   geom_histogram(bins = 15, color = "black", fill = "white") +
@@ -815,14 +828,17 @@ obs_by_year <- ggplot(eagles, aes(x = year, y = weeks)) +
   xlab("Year") +
   ylab("Weeks of observation")
 
-count_dist + theme(axis.title.x = element_text(size = 30, face = "bold"),
-                 axis.title.y = element_text(size = 30, face = "bold"))
+count_dist + theme(axis.title.x = element_text(size = 40, face = "bold"),
+                 axis.title.y = element_text(size = 40, face = "bold"),
+        axis.text = element_text(size = 25))
 
-count_by_year + theme(axis.title.x = element_text(size = 30, face = "bold"),
-                 axis.title.y = element_text(size = 30, face = "bold"))
+count_by_year + theme(axis.title.x = element_text(size = 40, face = "bold"),
+                 axis.title.y = element_text(size = 40, face = "bold"),
+        axis.text = element_text(size = 25))
 
-obs_by_year + theme(axis.title.x = element_text(size = 30, face = "bold"),
-                 axis.title.y = element_text(size = 30, face = "bold"))
+obs_by_year + theme(axis.title.x = element_text(size = 40, face = "bold"),
+                 axis.title.y = element_text(size = 40, face = "bold"),
+        axis.text = element_text(size = 25))
 
 ```
 
@@ -922,7 +938,7 @@ An informal survey of students in an intro stats course included the question, "
 #| warning: FALSE
 #| layout-ncol: 2
 #| layout-nrow: 1
-#| out-width: 70%
+#| out-width: 90%
 
 # Read in weekendDrinks data
 zip_data <- read_csv("data/weekendDrinks.csv")  
@@ -956,10 +972,12 @@ g_model <- ggplot(pois_model, aes(y = model_prob,
   coord_cartesian(ylim = c(0, .5))
 
 g_obs + theme(axis.title.x = element_text(size = 30, face = "bold"),
-                 axis.title.y = element_text(size = 30, face = "bold"))
+                 axis.title.y = element_text(size = 30, face = "bold"),
+        axis.text = element_text(size = 20))
 
 g_model + theme(axis.title.x = element_text(size = 30, face = "bold"),
-                 axis.title.y = element_text(size = 30, face = "bold"))
+                 axis.title.y = element_text(size = 30, face = "bold"),
+        axis.text = element_text(size = 20))
 ```
 
 There are more zeros than expected under a Poisson model.
@@ -1026,7 +1044,8 @@ ggplot(p.table, aes(x = totalIssuePages,
   labs(y = "Proportion", 
        x = "Observed total issue pages") + 
   theme(axis.title.x = element_text(size = 30, face = "bold"),
-                 axis.title.y = element_text(size = 30, face = "bold"))
+                 axis.title.y = element_text(size = 30, face = "bold"),
+        axis.text = element_text(size = 20))
 
 ```
 
@@ -1081,6 +1100,8 @@ With your neighbor(s) discuss plans, ideas, questions, and concerns you have abo
 
 ## Preview of materials
 
+github.com/proback/USCOTS25_Poisson_breakout
+
 [GitHub repo](https://github.com/proback/USCOTS25_Poisson_breakout) for this session, containing:
 
 -   slides for this presentation (including R source code and data)
@@ -1089,6 +1110,7 @@ With your neighbor(s) discuss plans, ideas, questions, and concerns you have abo
 
 [Beyond Multiple Linear Regression: Applied Generlized Linear Models and Multilevel Models in R](https://bookdown.org/roback/bookdown-BeyondMLR/) by Roback and Legler (2021).
 
+bookdown.org/roback/bookdown-BeyondMLR
 
 ## Thanks!
 

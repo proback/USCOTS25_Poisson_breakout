@@ -466,7 +466,7 @@ AIC(visits1nb, visits2nb)
 
 Important notes: 
 
-- To compare two NESTED quasipoisson models, we can use anova(m1, m1, test = "F"). This an approximation to the likelihood ratio test. (Can't use LRT becuase it is not a true likelihood!)
+- To compare two NESTED quasipoisson models, we can use anova(m1, m1, test = "F"). This an approximation to the likelihood ratio test. (Can't use LRT because it is not a true likelihood!)
 
 - The negative binomial model uses a true likelihood. To compare two NESTED negative binomial models, we can use anova(m1, m1, test = "Chisq") just as with Poisson or other models! We can also compare AICs.
 
@@ -474,8 +474,7 @@ Important notes:
 
 - The Negative Binomial model can only handle OVERdispersion.
 
-- It isn't advisable to compare the AICs of the Poisson to the Negative Binomial because the model structure is so different. We have learned to use the goodness of fit test to test for overdispersion. 
-Other tests exist to directly compare negative binomial to poisson models, but they are beyond the scope of this class.
+- We can compare the Negative Binomial model to the Poisson with AIC since they are both likelihood based. If the Negative Binomial model has lower AIC, this suggests there is overdispersion! However, we cannot use AIC to determine *which* overdispersed model is preferred (Negative Binomial or quasi-Poisson) since the quasi-Poisson is not likelihood-based and therefore has no AIC.
 
 
 

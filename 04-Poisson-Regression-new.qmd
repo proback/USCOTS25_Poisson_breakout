@@ -46,9 +46,9 @@ Consider the following questions:
 3. Does the daily number of asthma-related visits to an Emergency Room differ depending on air pollution indices?
 4. Has the number of deformed fish in randomly selected Minnesota lakes been affected by changes in trace minerals in the water over the last decade? 
 
-Each example involves predicting a response using one or more explanatory variables, although these examples have response variables that are counts per some unit of time or space.  A Poisson random variable is often used to model counts; see [Chapter @sec-distthry] for properties of the Poisson distribution.  Since a Poisson random variable is a count, its minimum value is zero and, in theory, the maximum is unbounded. We'd like to model our main parameter $\lambda$, the average number of occurrences per unit of time or space, as a function of one or more covariates.  For example, in the first question above, $\lambda_i$ represents the average number of motorcycle deaths in a year for state $i$, and we hope to show that state-to-state variability in $\lambda_i$ can be explained by state helmet laws.  
+Each example involves predicting a response using one or more explanatory variables, although these examples have response variables that are counts per some unit of time or space.  A Poisson random variable is often used to model counts; see [Chapter 3: Distribution Theory] for properties of the Poisson distribution.  Since a Poisson random variable is a count, its minimum value is zero and, in theory, the maximum is unbounded. We'd like to model our main parameter $\lambda$, the average number of occurrences per unit of time or space, as a function of one or more covariates.  For example, in the first question above, $\lambda_i$ represents the average number of motorcycle deaths in a year for state $i$, and we hope to show that state-to-state variability in $\lambda_i$ can be explained by state helmet laws.  
 
-For a linear least squares regression model, the parameter of interest is the average response, $\mu_i$, for subject $i$, and $\mu_i$ is modeled as a line in the case of one explanatory variable. By analogy, it might seem reasonable to try to model the Poisson parameter $\lambda_i$ as a linear function of an explanatory variable, but there are some problems with this approach.  In fact, a model like $\lambda_i=\beta_0+\beta_1x_i$ doesn't work well for Poisson data.  A line is certain to yield negative values for certain $x_i$, but $\lambda_i$ can only take on values from 0 to $\infty$. In addition, the equal variance assumption in linear regression inference is violated because as the mean rate for a Poisson variable increases, the variance also increases (recall from [Chapter @sec-distthry] that if $Y$ is the observed count, then $E(Y)=Var(Y)=\lambda$).  
+For a linear least squares regression model, the parameter of interest is the average response, $\mu_i$, for subject $i$, and $\mu_i$ is modeled as a line in the case of one explanatory variable. By analogy, it might seem reasonable to try to model the Poisson parameter $\lambda_i$ as a linear function of an explanatory variable, but there are some problems with this approach.  In fact, a model like $\lambda_i=\beta_0+\beta_1x_i$ doesn't work well for Poisson data.  A line is certain to yield negative values for certain $x_i$, but $\lambda_i$ can only take on values from 0 to $\infty$. In addition, the equal variance assumption in linear regression inference is violated because as the mean rate for a Poisson variable increases, the variance also increases (recall from [Chapter 3: Distribution Theory] that if $Y$ is the observed count, then $E(Y)=Var(Y)=\lambda$).  
 
 One way to avoid these problems is to model log($\lambda_i$) instead of $\lambda_i$ as a function of the covariates. The log($\lambda_i$) takes on values from $-\infty$ to $\infty$. We can also take into account the increase in the variance with an increasing mean using this approach. (Note that throughout *Beyond Multiple Linear Regression* we use log to represent the natural logarithm.)  Thus, we will consider the **Poisson regression** \index{Poisson regression} model:
 
@@ -533,11 +533,11 @@ where d= the difference in the degrees of freedom associated with the two models
 - When the true coefficient is 0, for sufficiently large $n$, the test statistic $\sim$ N(0,1).
 - If the magnitude of the test statistic is large, there is evidence that the true coefficient is not 0.
 
-The drop-in-deviance and the Wald-type tests usually provide consistent results; however, if there is a discrepancy, the drop-in-deviance is preferred.  Not only does the drop-in-deviance test perform better in more cases, but it's also more flexible.  If two models differ by one term, then the drop-in-deviance test essentially tests if a single coefficient is 0 like the Wald test does, while if two models differ by more than one term, the Wald test is no longer appropriate.  And if one model is not nested in the other, we can compare measures of model performance such as AIC and BIC (see @sec-beyondmost), although no formal significance test is available.
+The drop-in-deviance and the Wald-type tests usually provide consistent results; however, if there is a discrepancy, the drop-in-deviance is preferred.  Not only does the drop-in-deviance test perform better in more cases, but it's also more flexible.  If two models differ by one term, then the drop-in-deviance test essentially tests if a single coefficient is 0 like the Wald test does, while if two models differ by more than one term, the Wald test is no longer appropriate.  And if one model is not nested in the other, we can compare measures of model performance such as AIC and BIC (see Chapter 2: Beyond Least Squares), although no formal significance test is available.
 
 ### Using Likelihoods to Fit Models (optional) {#sec-likelihood}
 
-Before continuing with model building, we take a short detour to see how coefficient estimates are determined in a Poisson regression model.  The least squares approach requires a linear relationship between the parameter, $\lambda_i$ (the expected or mean response for observation $i$), and $x_i$ (the age for observation $i$).  However, it is log$(\lambda_i)$, not $\lambda_i$, that is linearly related to X with the Poisson model.  The assumptions of equal variance and normality also do not hold for Poisson regression.  Thus, the method of least squares will not be helpful for inference in Poisson regression. Instead of least squares, we employ the likelihood \index{likelihood} principle to find estimates of our model coefficients, as in @sec-beyondmost.  We look for those coefficient estimates for which the likelihood of our data is maximized; these are the __maximum likelihood estimates__. \index{maximum likelihood estimate (MLE)}
+Before continuing with model building, we take a short detour to see how coefficient estimates are determined in a Poisson regression model.  The least squares approach requires a linear relationship between the parameter, $\lambda_i$ (the expected or mean response for observation $i$), and $x_i$ (the age for observation $i$).  However, it is log$(\lambda_i)$, not $\lambda_i$, that is linearly related to X with the Poisson model.  The assumptions of equal variance and normality also do not hold for Poisson regression.  Thus, the method of least squares will not be helpful for inference in Poisson regression. Instead of least squares, we employ the likelihood \index{likelihood} principle to find estimates of our model coefficients, as in Chapter 2: Beyond Least Squares.  We look for those coefficient estimates for which the likelihood of our data is maximized; these are the __maximum likelihood estimates__. \index{maximum likelihood estimate (MLE)}
 
 The likelihood for n *independent* \index{independent} observations is the product of the probabilities. For example, if we observe five households with household sizes of 4, 2, 8, 6, and 1 person beyond the head, the likelihood is:
 
@@ -552,7 +552,7 @@ for $y = 0, 1, 2, ...$  So, the likelihood can be written as
  \frac{ e^{-\lambda_2}\lambda_2^2 }{ 2! } *\frac{e^{-\lambda_3}\lambda_3^8}{8!}*
  \frac{e^{-\lambda_4}\lambda_4^6}{6!}*\frac{e^{-\lambda_5}\lambda_5^1}{1!}
  \end{align*}
-where each $\lambda_i$ can differ for each household depending on a particular $x_i$.  As in [Chapter @sec-beyondmost], it will be easier to find a maximum if we take the log of the likelihood and ignore the constant term resulting from the sum of the factorials:
+where each $\lambda_i$ can differ for each household depending on a particular $x_i$.  As in [Chapter 2: Beyond Least Squares], it will be easier to find a maximum if we take the log of the likelihood and ignore the constant term resulting from the sum of the factorials:
 
 $$
 \begin{aligned}
@@ -582,7 +582,7 @@ $$
 \end{aligned}
 $$ {#eq-poisLoglik2}
 
-To see this, match the terms in @eq-poisLoglik with those in @eq-poisLoglik2, noting that $\lambda_i$ has been replaced with $e^{\beta_0+\beta_1x_i}$. It is @eq-poisLoglik2 that will be used to estimate the coefficients $\beta_0$ and $\beta_1$. Although this looks a little more complicated than the log-likelihoods we saw in [Chapter @sec-beyondmost], the fundamental ideas are the same. In theory, we try out different possible values of $\beta_0$ and $\beta_1$ until we find the two for which the log-likelihood is largest.  Most statistical software packages have automated search algorithms to find those values for $\beta_0$ and $\beta_1$ that maximize the log-likelihood.
+To see this, match the terms in @eq-poisLoglik with those in @eq-poisLoglik2, noting that $\lambda_i$ has been replaced with $e^{\beta_0+\beta_1x_i}$. It is @eq-poisLoglik2 that will be used to estimate the coefficients $\beta_0$ and $\beta_1$. Although this looks a little more complicated than the log-likelihoods we saw in [Chapter 2: Beyond Least Squares], the fundamental ideas are the same. In theory, we try out different possible values of $\beta_0$ and $\beta_1$ until we find the two for which the log-likelihood is largest.  Most statistical software packages have automated search algorithms to find those values for $\beta_0$ and $\beta_1$ that maximize the log-likelihood.
 
 
 ## Linear Least Squares \index{linear least squares regression (LLSR)} vs. Poisson Regression \index{Poisson regression}
@@ -997,9 +997,9 @@ kable(table1chp4, booktabs = T, escape = F)
 
 ### Negative Binomial Modeling
 
-Another approach to dealing with overdispersion is to model the response using a negative binomial instead of a Poisson distribution. An advantage of this approach is that it introduces another parameter in addition to $\lambda$, which gives the model more flexibility and, as opposed to the quasi-Poisson model, the negative binomial model assumes an explicit likelihood model.  You may recall that negative binomial random variables take on non-negative integer values, which is consistent with modeling counts.  This model posits selecting a $\lambda$ for each household and then generating a count using a Poisson random variable with the selected $\lambda$.  With this approach, the counts will be more dispersed than would be expected for observations based on a single Poisson variable with rate $\lambda$. (See Guided Exercises on the Gamma-Poisson mixture in [Chapter @sec-distthry].)
+Another approach to dealing with overdispersion is to model the response using a negative binomial instead of a Poisson distribution. An advantage of this approach is that it introduces another parameter in addition to $\lambda$, which gives the model more flexibility and, as opposed to the quasi-Poisson model, the negative binomial model assumes an explicit likelihood model.  You may recall that negative binomial random variables take on non-negative integer values, which is consistent with modeling counts.  This model posits selecting a $\lambda$ for each household and then generating a count using a Poisson random variable with the selected $\lambda$.  With this approach, the counts will be more dispersed than would be expected for observations based on a single Poisson variable with rate $\lambda$. (See Guided Exercises on the Gamma-Poisson mixture in [Chapter 3: Distribution Theory].)
 
-Mathematically, you can think of the negative binomial model as a Poisson model where $\lambda$ is also random, following a gamma distribution.  Specifically, if $Y|\lambda \sim \textrm{Poisson}(\lambda)$ and $\lambda \sim \textrm{gamma}(r,\frac{1-p}{p})$, then $Y \sim \textrm{NegBinom}(r,p)$ where $E(Y)=\frac{pr}{1-p}=\mu$ and $Var(Y)=\frac{pr}{(1-p)^2}=\mu+\frac{\mu^2}{r}$.  The overdispersion in this case is given by $\frac{\mu^2}{r}$, which approaches 0 as $r$ increases (so smaller values of $r$ indicate greater overdispersion).
+Mathematically, you can think of the negative binomial model as a Poisson model where $\lambda$ is also random, following a gamma distribution.  Specifically, if $Y|\lambda \sim \textrm{Poisson}(\lambda)$ and $\lambda \sim \textrm{gamma}(r,\frac{p}{1-p})$, then $Y \sim \textrm{NegBinom}(r,p)$ where $E(Y)=\frac{r(1-p)}{p}=\mu$ and $Var(Y)=\frac{r(1-p)}{p^2}=\mu+\frac{\mu^2}{r}$.  The overdispersion in this case is given by $\frac{\mu^2}{r}$, which approaches 0 as $r$ increases (so smaller values of $r$ indicate greater overdispersion).
 
 Here is what happens if we apply a negative binomial regression model \index{negative binomial regression} to the age-location model, which we've already established suffers from overdispersion issues under regular Poisson regression:
 
@@ -1092,7 +1092,7 @@ More significantly, recall that in quasi-Poisson modeling we assume $Var(Y) = \p
 #| message: FALSE
 
 fHH1 |> 
-  mutate(pred = predict(modela2v), 
+  mutate(pred = predict(modela2L), 
          grouping = cut_number(pred, 30)) |>
   group_by(grouping) |>
   summarize(meantotal = mean(total), 
@@ -1105,8 +1105,11 @@ fHH1 |>
          y = "Variance in household size")
 ```
 
-In @fig-mean-var, we see that there is more variance than expected under the Poisson model for each mean household size, but the relationship is more quadratic than linear.  This would argue for a negative binomial model in this instance.  The negative binomial model also works reasonably well in most situations with a linear relationship between mean and variance, and it has the additional advantage of leading to a true likelihood and a true likelihood ratio (drop-in-deviance) test.  AIC values can also be compared between negative binomial models, although we cannot use AIC to compare a negative binomial model to a Poisson model because of the different model structures.  Negative binomial models, because the overdispersion parameter $r$ must be positive, are unable to handle *underdispersion* (where the variance is less than the mean), while quasi-Poisson models can handle underdispersion simply by estimating $\phi$ as less than 1. 
+In @fig-mean-var, we see that there is more variance than expected under the Poisson model for each mean household size, but the relationship is slightly more quadratic than linear.  This would argue for a negative binomial model in this instance.  The negative binomial model also works reasonably well in most situations with a linear relationship between mean and variance, and it has the additional advantage of leading to a true likelihood and a true likelihood ratio (drop-in-deviance) test.  AIC values can also be compared between non-nested negative binomial models, but since it is not likelihood-based, we cannot use (or even compute!) AIC values to compare non-nested quasi-Poisson models to each other. This also means that AIC is not usable for determining whether a quasi-Poisson or negative binomial model is preferred. We can compare the AIC of the negative binomial model to the Poisson as another way of checking for overdispersion, though this is usually redundant after robust EDA. 
 
+Negative binomial models, because the overdispersion parameter $r$ must be positive, are unable to handle *underdispersion* (where the variance is less than the mean), while quasi-Poisson models can handle underdispersion simply by estimating $\phi$ as less than 1. 
+
+### A more detailed look at deviance residuals (Optional)
 
 ## Case Study: Bald Eagles
 
@@ -1650,15 +1653,15 @@ A zero-inflated Poisson regression model to take non-drinkers into account consi
 The form for each part of the model follows. The first part looks like an ordinary Poisson regression model:
 
 $$
-log(\lambda)=\beta_0+\beta_1\textrm{off_campus}+ \beta_2\textrm{sex}
+log(\lambda)=\beta_0+\beta_1\textrm{off\_campus}+ \beta_2\textrm{sex}
 $$
 where $\lambda$ is the mean number of drinks in a weekend *among those who drink*.
 The second part has the form
 
 $$
-logit(\alpha)=\beta_0+\beta_1\textrm{first_year}
+logit(\alpha)=\beta_0+\beta_1\textrm{first\_year}
 $$
-where $\alpha$ is the probability of being in the non-drinkers group and $logit(\alpha) = log( \alpha/(1-\alpha))$.  We'll provide more detail on the logit in [Chapter @sec-logreg].  There are many ways in which to structure this model; here we use different predictors in the two pieces, although it would have been perfectly fine to use the same predictors for both pieces, or even no predictors for one of the pieces.
+where $\alpha$ is the probability of being in the non-drinkers group and $logit(\alpha) = log( \alpha/(1-\alpha))$.  We'll provide more detail on the logit in [Chapter 6: Logistic Regression].  There are many ways in which to structure this model; here we use different predictors in the two pieces, although it would have been perfectly fine to use the same predictors for both pieces, or even no predictors for one of the pieces.
 
 How is it possible to fit such a model? We cannot observe whether a respondent is a drinker or not (which probably would've been good to ask, in retrospect!). The ZIP model is a special case of a more general type of statistical model referred to as a __latent variable model__. More specifically, it is a type of a __mixture model__ \index{mixture model} where observations for one or more groups occur together and the group membership is unknown.  Zero-inflated models are a particularly common example of a mixture model, but the response does not need to follow a Poisson distribution.  Likelihood methods are at the core of this methodology, but fitting is an iterative process where it is necessary to start out with some guesses (or starting values).  In general, it is important to know that models like ZIP exist, although we'll only explore interpretations and fitting options for a single case study here.
 
@@ -1692,16 +1695,16 @@ The "Zero-inflation model coefficients" refer to separating drinkers from non-dr
   
 We have
 $$
-log(\alpha/(1-\alpha)) =-0.6036+1.1364\textrm{first_year}
+log(\alpha/(1-\alpha)) =-0.6036+1.1364\textrm{first\_year}
 $$
 
 However, we are interested in $\alpha$, the proportion of non-drinkers. Exponentiating the coefficient for the first-year term for this model yields 3.12. Here it is interpreted as the odds ($\frac{\alpha}{1-\alpha}$) that a first-year student is a non-drinker is 3.12 times the odds that an upper-class student is a non-drinker. Furthermore, with a little algebra (solving the equation with $log(\alpha/(1-\alpha)$) for $\alpha$), we have
  
 $$
  \hat{\alpha} =
- \frac{e^ {-0.6036+1.1364(\textrm{first_year})}}
+ \frac{e^ {-0.6036+1.1364(\textrm{first\_year})}}
  {1+e^{
- -0.6036+1.1364(\textrm{first_year})
+ -0.6036+1.1364(\textrm{first\_year})
  }
  }.
 $$
@@ -1711,7 +1714,7 @@ The estimated chance that a first-year student is a non-drinker is
 $$
 \frac{e^{0.533}}{1+e^{0.533}} = 0.630
 $$
-or 63.0\%, while for non-first-year students, the estimated probability of being a non-drinker is 0.354.  If you have seen logistic regression, you'll recognize that this transformation is what is used to estimate a probability.  More on this in [Chapter @sec-logreg].
+or 63.0\%, while for non-first-year students, the estimated probability of being a non-drinker is 0.354.  If you have seen logistic regression, you'll recognize that this transformation is what is used to estimate a probability.  More on this in [Chapter 6: Logistic Regression].
 
 ### The Vuong Test (optional)
 
@@ -2092,9 +2095,9 @@ count_interaction_cut
 
 Similar to ZIP models (@sec-ZIPmodel), we will define $\lambda$ to be the mean number of drinks *among those who posted at least one issue page*, and $\alpha$ to be the proportion of *candidates who post at least one issue page* ("true non-zeros" or "true hurdlers").  Then, we will attempt to model $\lambda$ and $\alpha$ (or functions of $\lambda$ and $\alpha$) simultaneously using characteristics of the candidates and their districts.  We can use different predictors if we wish in the two parts of our model.  This type of model is referred to as a __hurdle model__. \index{hurdle model}
 
-Once again, the response for the binary part of the model is the log odds of posting at least one issue page, that is $logit(\alpha) = log( \alpha/(1-\alpha))$ where $\alpha$ is the probability of being in the posting group, as described more fully in [Chapter @sec-logreg].  The response for the count part of the model is $log(\lambda)$, where $\lambda$ is the mean number of issue pages posted *among those who choose to post at least one*.
+Once again, the response for the binary part of the model is the log odds of posting at least one issue page, that is $logit(\alpha) = log( \alpha/(1-\alpha))$ where $\alpha$ is the probability of being in the posting group, as described more fully in [Chapter 6: Logistic Regression].  The response for the count part of the model is $log(\lambda)$, where $\lambda$ is the mean number of issue pages posted *among those who choose to post at least one*.
 
-One additional difference between a hurdle model and a ZIP model is that, in a hurdle model, the count portion of the model is actually based on a **truncated Poisson** distribution rather than a full Poisson distribution.  While a full Poisson distribution has a domain starting at 0, a truncated Poisson distribution has a domain starting at 1.  Therefore, while from @sec-distthry we know that a full Poisson distribution has probability mass function
+One additional difference between a hurdle model and a ZIP model is that, in a hurdle model, the count portion of the model is actually based on a **truncated Poisson** distribution rather than a full Poisson distribution.  While a full Poisson distribution has a domain starting at 0, a truncated Poisson distribution has a domain starting at 1.  Therefore, while from 3: Distribution Theory we know that a full Poisson distribution has probability mass function
 
 $$
 P(Y=y) = \frac{e^{-\lambda}\lambda^y}{y!} \quad \textrm{for} \quad y = 0, 1, \ldots, \infty,
@@ -2116,8 +2119,8 @@ As expected with our large number of zeros, a regular Poisson model shows a sign
 pois_m0 <- glm(totalIssuePages ~ democrat + incumbent + 
     demHeterogeneity + mismatch + attHeterogeneity + distLean + 
     ideology + ideology:democrat, 
-  data = ambiguity_full, 
-  family = poisson)
+  data = ambiguity, 
+    family = poisson)
 summary(pois_m0)
 
 # Goodness-of-fit test
@@ -2133,7 +2136,7 @@ hurdle_model <- hurdle(totalIssuePages ~ democrat + incumbent +
     ideology + ideology:democrat | democrat + incumbent +
     demHeterogeneity + mismatch + attHeterogeneity + distLean + 
     ideology + ideology:democrat, 
-  data = ambiguity_full, 
+  data = ambiguity, 
   dist="poisson", 
   zero="binomial")
 ```
@@ -2167,7 +2170,7 @@ Looking at our full hurdle model, candidates for U.S. House were more likely to 
 
 Poisson regression models provide a natural extension to multiple linear regression models which allow analysts to model responses which are counts.  Certain violations of Poisson regression model conditions, like overdispersion and uneven sampling effort, are fairly common but can be reasonably handled using ad-hoc adjustments (like quasi-Poisson models) or other distributions (like the negative binomial) with additional model parameters.  Other common violations, including those caused by excess zeros, can be addressed through specialized models such as zero-inflated Poisson and hurdle, where multiple models for related responses are fit simultaneously, but model interpretations remain familiar.  Here we have only skimmed the surface of Poisson-flavored models, but we want you to be aware of the flexible and creative modeling possibilities for fitting data consistent with its true underlying characteristics.  We hope you will see this theme throughout this book!
 
-The next chapter, @sec-glms, provides a theoretical detour that shows how many of these seemingly unrelated models---linear regression, Poisson regression, negative binomial regression, etc.---can fit neatly together in a single unifying theory.  
+The next chapter, 5: Generalized Linear Models, provides a theoretical detour that shows how many of these seemingly unrelated models---linear regression, Poisson regression, negative binomial regression, etc.---can fit neatly together in a single unifying theory.  
 
 
 ## Exercises

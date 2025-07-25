@@ -1,7 +1,7 @@
 # USCOTS25_Poisson_breakout
 Materials for USCOTS25 Breakout Session B3H: Integrating Poisson regression into the undergraduate curriculum
 
-beamer.pdf: slides used at the conference. (Includes links and more info about the contents of this folder!)
+beamer.pdf: slides used at the conference. (Includes links and more info about the contents of this repo!)
 
 beamer.qmd: Quarto file used to create slides. 
 
